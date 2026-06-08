@@ -1,0 +1,189 @@
+# ForCoding Workflow Template (v2.9, I12)
+# 可重现的编排脚本 — 版本控制、可审查、可被团队复用
+#
+# 使用: 编排器根据 project_type 和 depth 选择匹配的模板
+#       模板定义了完整工作流，编排器按脚本执行而非每次重新协商
+
+# === Template Metadata ===
+template_version: "2.0"
+forcoding_version: "v2.9"
+description: "通用工作流模板 — 按 project_type 和 depth 参数化，含哈希门控"
+
+# === Template Parameters (运行时注入) ===
+parameters:
+  project_name: "{{PROJECT_NAME}}"
+  project_type: "{{PROJECT_TYPE}}"        # fullstack | frontend-only | backend-only | other
+  depth: "{{DEPTH}}"                      # quick | standard | deep
+  date: "{{DATE}}"                        # YYYY-MM-DD
+  topic: "{{TOPIC}}"                      # short slug
+
+# === Phase Gates (v2.9 — 哈希门控) ===
+# 每个阶段完成后创建 .approved JSON 文件作为不可变证明
+# 门文件包含: content_hash (md5 of output), prev_hash (chain link), composite_hash
+# 阶段间转换: 检查前一阶段 .approved 存在 + 哈希匹配
+gates:
+  hash_algorithm: "md5"
+  chain_of_custody: true
+
+  discovery:
+    file: "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.discovery.approved"
+    condition: "Discovery Phase 3 完成 + 用户确认"
+    triage: "{{TRIAGE_LEVEL}}"            # FAST-TRACK | STANDARD | FULL
+    content_file: "docs/forcoding/discovery/{{DATE}}-{{TOPIC}}.md"
+    prev_hash: null                        # 创世区块
+
+  designer:
+    file: "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.designer.approved"
+    condition: "Spec 审批通过 (Gate Score >= 6/8)"
+    input: "docs/forcoding/discovery/{{DATE}}-{{TOPIC}}.md"
+    content_file: "docs/forcoding/designs/{{DATE}}-{{TOPIC}}.md"
+    prev_hash: "{{DISCOVERY_HASH}}"        # 链到 discovery
+
+  planner:
+    file: "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.planner.approved"
+    condition: "Plan 自审通过 (所有特征点覆盖 + 并行安全)"
+    input: "docs/forcoding/designs/{{DATE}}-{{TOPIC}}.md"
+    content_file: "docs/forcoding/plans/{{DATE}}-{{TOPIC}}.md"
+    prev_hash: "{{DESIGNER_HASH}}"         # 链到 designer
+    skip_if: "depth != deep"
+
+  builder:
+    pattern: "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.builder-{{N}}.approved"
+    condition: "Auditor Pass 0-5 -> VALIDATED"
+    content_file: "{{BUILDER_OUTPUT_FILES}}"
+    prev_hash: "{{PLANNER_HASH}}"          # 链到 planner
+    per_subsystem: true
+    composite: true                        # 最终门文件含 composite_hash
+
+# === Stage Sequence ===
+stages:
+  - name: intent
+    agent: orchestrator
+    gate: "User confirms goal + constraint + complexity"
+    skip_if: "全自动 mode"
+    outputs:
+      - "Pre-Flight Gate Report"
+      - "project_type 确定"
+
+  - name: discovery
+    agent: orchestrator
+    gate: "User confirms approach + scope (Gate 1.5)"
+    skip_if: "depth = quick"
+    triage: "{{TRIAGE_LEVEL}}"
+    phases:
+      - phase_0: "问题分析 (200-300 words)"
+      - phase_1: "需求征询 (0-4 问题, FAST-TRACK 跳过)"
+      - phase_2: "方案选择 (2-3 方案)"
+      - phase_3: "范围确认 (In/Out Scope)"
+    outputs:
+      - "docs/forcoding/discovery/{{DATE}}-{{TOPIC}}.md"
+
+  - name: tech_stack
+    agent: orchestrator
+    gate: auto
+    outputs:
+      - "Tech Stack Profile (注入所有子智能体 prompt)"
+
+  - name: design
+    agent: forcoding-designer
+    gate: "User approves spec (Gate 2)"
+    skip_if: "depth = quick"
+    input: "docs/forcoding/discovery/{{DATE}}-{{TOPIC}}.md"
+    fullstack_extra: "API Contract section"
+    outputs:
+      - "docs/forcoding/designs/{{DATE}}-{{TOPIC}}.md"
+
+  - name: plan
+    agent: forcoding-planner
+    gate: "Confidence > 80% → auto; else user approval (Gate 3)"
+    skip_if: "depth = quick OR depth = standard"
+    input: "docs/forcoding/designs/{{DATE}}-{{TOPIC}}.md"
+    depth_rules:
+      deep: "SPOQ DAG + VERIMAP Python VFs + 并行分组"
+    outputs:
+      - "docs/forcoding/plans/{{DATE}}-{{TOPIC}}.md"
+
+  - name: build
+    agent: forcoding-builder (×N)
+    gate: "Builder Dispatch Gate (I6) → Builder count >= subsystem count"
+    input: "docs/forcoding/plans/{{DATE}}-{{TOPIC}}.md (deep) OR designer spec (standard)"
+    self_refine: "≤3 iterations per Builder"
+    parallel: "Dispatch all independent builders in one message"
+    visual_lead: "UI tasks → single Visual Lead for CSS/HTML"
+    outputs:
+      - "Code files (via Builder subagents)"
+
+  - name: verify
+    agent: forcoding-auditor
+    gate: auto
+    passes:
+      - pass_0: "流程合规 (v2.7 I5) — 检查 Discovery/Designer/Builder 调度证据"
+      - pass_1: "安全审查"
+      - pass_2: "语法检查"
+      - pass_2_5: "集成契约 (full-stack, v2.8 I10) — VF-INT-001 ~ 005"
+      - pass_3: "VF 验证 (Python + NL)"
+      - pass_4: "准确度审查 + 视觉审计 (UI tasks)"
+    verdict: "VALIDATED | PARTIAL | INVALIDATED"
+    retry: "INVALIDATED → back to Build"
+
+  - name: rsi
+    agent: orchestrator
+    gate: auto
+    checks:
+      - part_a: "6-item quality metrics"
+      - part_b: "7-item dispatch verification (standard+)"
+      - part_c: "Gate file + Hash integrity (v2.9 I13) — content_hash match + chain of custody"
+      - part_d: "NEXT_SESSION_INPUT output (含哈希摘要)"
+    escalation: ">=2 red flags -> pause; 3 consecutive same violation -> HITL Tier 4"
+    hash_verification: "Verify all content_hash + prev_hash + composite_hash"
+
+# === HITL Approval Matrix (v2.7 I7) ===
+approval:
+  tier_1_auto:
+    - "编排器调度 Builder/Auditor"
+    - "只读操作 (read/glob/grep/lsp)"
+    - "技能加载 (skill)"
+    - "npm install (via task(general))"
+
+  tier_2_risk_based:
+    - "git push --force"
+    - "生产环境部署"
+    - "删除关键配置文件"
+    intervention: "ask (confirm/reject)"
+
+  tier_3_audit_sample:
+    - "Builder 代码输出 (10% 随机)"
+    intervention: "抽查"
+
+  tier_4_telemetry:
+    - "RSI 连续3次红旗"
+    - "Builder 连续3次 Self-Refine 失败"
+    - "Auditor 连续2次 INVALIDATED"
+    intervention: "escalate (暂停工作流)"
+
+  tier_5_always:
+    - "合并到 main 分支"
+    - "删除生产数据"
+    - "修改安全策略/权限"
+    intervention: "始终审批 (不可自动)"
+
+# === Context Window Budget (v2.7 I8) ===
+context_budget:
+  discovery_designer: "< 50K tokens"
+  planner: "< 30K tokens"
+  builder_auditor: "< 50K tokens per Builder subagent"
+
+# === Deliverables ===
+deliverables:
+  docs:
+    - "docs/forcoding/discovery/{{DATE}}-{{TOPIC}}.md"
+    - "docs/forcoding/designs/{{DATE}}-{{TOPIC}}.md"
+    - "docs/forcoding/plans/{{DATE}}-{{TOPIC}}.md"
+  gates:
+    - "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.discovery.approved (含 md5 hash)"
+    - "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.designer.approved (含 prev_hash + md5)"
+    - "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.planner.approved (含 prev_hash + md5)"
+    - "docs/forcoding/gates/{{DATE}}-{{TOPIC}}.builder-{{N}}.approved (含 prev_hash + composite_hash)"
+  hash_artifacts:
+    - "Chain of custody: discovery -> designer -> planner -> builder (unbroken)"
+    - "Composite hash: md5(all content_hash values concatenated)"

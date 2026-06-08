@@ -1,0 +1,102 @@
+# ForCoding v3.0 — NEVER Rules Policy
+# Inspired by Microsoft AGT PolicyDocument schema
+# These rules CANNOT be overridden by project-specific policies.
+# Evaluated by the deterministic Policy Engine, NOT by LLM prompts.
+#
+# Conflict strategy: deny_overrides (any deny wins)
+
+apiVersion: forcoding.toolkit/v1
+name: never-rules
+version: "3.0"
+description: "Non-negotiable orchestrator constraints — evaluated deterministically before every action"
+default_action: allow
+inherit: false  # Block inheritance — these rules are absolute
+
+rules:
+  # ─── I1: Orchestrator write/edit PHYSICALLY BLOCKED ───
+  - name: never-write-code
+    condition:
+      field: action.type
+      operator: eq
+      value: write
+    action: deny
+    priority: 1000
+    description: "Orchestrator cannot write code. Delegate to @forcoding-builder via task()."
+
+  - name: never-edit-code
+    condition:
+      field: action.type
+      operator: eq
+      value: edit
+    action: deny
+    priority: 1000
+    description: "Orchestrator cannot edit files. Delegate to @forcoding-builder via task()."
+
+  - name: never-dangerous-bash
+    condition:
+      field: action.type
+      operator: eq
+      value: bash
+    action: deny
+    priority: 900
+    description: "Orchestrator bash restricted. Allowed: git status/diff/log/add/commit, npm install/test, npx, node --check."
+
+  # ─── I4: fullstack → deep FORCED ───
+  - name: fullstack-force-deep
+    condition:
+      field: context.project_type
+      operator: eq
+      value: fullstack
+    action: deny
+    priority: 800
+    description: "Full-stack projects MUST use depth=deep. Cannot downgrade to standard or quick."
+
+  # ─── I2/I6: Dispatch verification ───
+  - name: require-builder-dispatch
+    condition:
+      field: context.depth
+      operator: in
+      value: ["standard", "deep"]
+    action: require_check
+    priority: 700
+    description: "Standard+ tasks must dispatch at least 1 Builder. Builder count must >= subsystem count."
+
+  # ─── I3: Discovery mandatory ───
+  - name: require-discovery
+    condition:
+      field: context.depth
+      operator: in
+      value: ["standard", "deep"]
+    action: require_check
+    priority: 650
+    description: "Standard+ tasks must complete Discovery phase before Designer dispatch."
+
+  # ─── I5: Auditor mandatory ───
+  - name: require-auditor
+    condition:
+      field: context.skip_auditor
+      operator: eq
+      value: true
+    action: deny
+    priority: 600
+    description: "Auditor cannot be skipped. No self-review fallback."
+
+  # ─── Non-Think mode forbidden ───
+  - name: forbid-non-think
+    condition:
+      field: context.think_mode
+      operator: eq
+      value: "off"
+    action: deny
+    priority: 500
+    description: "Non-Think mode forbidden. All agents use Think Max."
+
+  # ─── Pro model escape hatch only ───
+  - name: pro-escape-hatch-only
+    condition:
+      field: context.model
+      operator: contains
+      value: "pro"
+    action: deny
+    priority: 400
+    description: "Pro model only allowed as escape hatch (3 Builder failures or 2 Auditor INVALIDATED)."

@@ -1,0 +1,1 @@
+export { ForCodingPlugin as default } from './.opencode/plugins/forcoding.js';

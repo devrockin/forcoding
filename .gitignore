@@ -1,0 +1,24 @@
+node_modules/
+.opencode/plugins/node_modules/
+self-test/results/*
+self-test/sessions/*/INDEX.md
+*.log
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+_gen-test.js
+_test_runner.ps1
+package-lock.json
+
+# Playwright
+.playwright-mcp/
+
+# Demo/output files
+index.html
+star-clock.html
+weather-cards.html
+*.html.bak
+
+# OS
+desktop.ini

@@ -1,0 +1,109 @@
+{
+  "version": "2.6.3",
+  "generated": "2026-06-08",
+  "description": "ForCoding v2.6.3 技能依赖清单 — 技术栈自适应 + ctx_reduce 阶段保护 + 全链路前端设计对齐",
+  "forcoding_builtin": [
+    "forcoding-gate",
+    "forcoding-core",
+    "forcoding-edit-quality",
+    "forcoding-flash-engine",
+    "forcoding-flash-optimization",
+    "forcoding-parallel",
+    "forcoding-intent",
+    "forcoding-reliable-edits",
+    "forcoding-clean-comments",
+    "forcoding-autopilot",
+    "forcoding-ui-checklist",
+    "forcoding-visual-review",
+    "forcoding-design-md-bridge"
+  ],
+  "external": {
+    "core": [
+      "insight",
+      "systematic-debugging",
+      "test-driven-development",
+      "think"
+    ],
+    "code-quality": [
+      "clean-code",
+      "conventional-commits",
+      "karpathy-coding",
+      "refactoring-safely"
+    ],
+    "architecture": [
+      "architecture-patterns",
+      "domain-driven-design",
+      "microservices-patterns",
+      "senior-architect"
+    ],
+    "design": [
+      "accessibility-a11y",
+      "design",
+      "design-taste-frontend",
+      "frontend-dev-guidelines",
+      "high-end-visual-design",
+      "popular-web-designs",
+      "ux-flow",
+      "uxui-principles"
+    ],
+    "security": [
+      "api-security-best-practices",
+      "security-audit"
+    ],
+    "performance": [
+      "performance-profiling",
+      "web-performance-optimization"
+    ],
+    "api": [
+      "api-design-principles",
+      "api-patterns"
+    ],
+    "research": [
+      "research-analysis-engine"
+    ]
+  },
+  "install_groups": {
+    "opencode-builtin": {
+      "label": "OpenCode 自带",
+      "skills": ["insight", "clean-code", "systematic-debugging", "test-driven-development", "conventional-commits", "think", "design", "refactoring-safely"],
+      "install": "",
+      "note": "OpenCode 内置，无需单独安装"
+    },
+    "architecture-pack": {
+      "label": "架构技能包",
+      "skills": ["architecture-patterns", "senior-architect", "microservices-patterns", "api-patterns"],
+      "install": "opencode-power-pack",
+      "note": "由 opencode-power-pack 或 opencode-skills-collection 提供"
+    },
+    "design-pack": {
+      "label": "设计技能包",
+      "skills": ["uxui-principles", "design-taste-frontend", "popular-web-designs", "high-end-visual-design", "frontend-dev-guidelines", "accessibility-a11y", "domain-driven-design"],
+      "install": "opencode-skills-collection",
+      "note": "由 opencode-skills-collection 插件提供"
+    },
+    "security-pack": {
+      "label": "安全技能包",
+      "skills": ["security-audit", "api-security-best-practices", "api-design-principles"],
+      "install": "opencode-power-pack",
+      "note": "由 opencode-power-pack 插件提供"
+    },
+    "performance-pack": {
+      "label": "性能技能包",
+      "skills": ["performance-profiling", "web-performance-optimization"],
+      "install": "opencode-power-pack",
+      "note": "由 opencode-power-pack 插件提供"
+    },
+    "research-pack": {
+      "label": "研究技能包",
+      "skills": ["research-analysis-engine"],
+      "install": "opencode-skills-collection",
+      "note": "由 opencode-skills-collection 插件提供"
+    },
+    "karpathy-pack": {
+      "label": "Karpathy 编码技能",
+      "skills": ["karpathy-coding"],
+      "install": "手动下载到 skills 目录",
+      "note": "需手动安装到 ~/.config/opencode/skills/karpathy-coding/"
+    }
+  }
+}

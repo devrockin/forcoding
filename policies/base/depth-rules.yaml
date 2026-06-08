@@ -1,0 +1,68 @@
+# ForCoding v3.0 — Depth Classification Rules
+# Determines workflow depth from subsystem count + project_type.
+
+apiVersion: forcoding.toolkit/v1
+name: depth-rules
+version: "3.0"
+description: "Workflow depth classification — structural enforcement of depth rules"
+default_action: allow
+
+rules:
+  # ─── 1 subsystem, no states → quick ───
+  - name: classify-quick
+    condition:
+      field: context.subsystem_count
+      operator: lte
+      value: 1
+    action: allow
+    priority: 100
+
+  # ─── 2-3 subsystems → standard ───
+  - name: classify-standard
+    condition:
+      field: context.subsystem_count
+      operator: in
+      value: [2, 3]
+    action: require_check
+    priority: 90
+    description: "2-3 subsystems → standard depth (Discovery + Designer + Builder + Auditor)."
+
+  # ─── 4+ subsystems → deep ───
+  - name: classify-deep-subsystems
+    condition:
+      field: context.subsystem_count
+      operator: gte
+      value: 4
+    action: require_check
+    priority: 80
+    description: "4+ subsystems → deep depth (Discovery + Designer + Planner + Builders + Auditor + Security)."
+
+  # ─── fullstack → deep (regardless of count) ───
+  - name: fullstack-force-deep
+    condition:
+      field: context.project_type
+      operator: eq
+      value: fullstack
+    action: require_check
+    priority: 1000
+    description: "Full-stack projects FORCE deep depth — structural enforcement (I4)."
+
+  # ─── Auto-upgrade: touch/drag/gesture → ≥ standard ───
+  - name: auto-upgrade-interaction
+    condition:
+      field: context.has_interaction
+      operator: eq
+      value: true
+    action: require_check
+    priority: 70
+    description: "Touch/drag/gesture interaction → minimum standard depth."
+
+  # ─── Auto-upgrade: auth/payments/PII → deep ───
+  - name: auto-upgrade-security
+    condition:
+      field: context.has_security_concern
+      operator: eq
+      value: true
+    action: require_check
+    priority: 60
+    description: "Auth/payments/PII → force deep with security review."

@@ -1,0 +1,54 @@
+# ForCoding v3.0 — Dispatch Rules Policy
+# Controls which sub-agents can be dispatched and under what conditions.
+
+apiVersion: forcoding.toolkit/v1
+name: dispatch-rules
+version: "3.0"
+description: "Sub-agent dispatch governance — validates preconditions before dispatch"
+default_action: allow
+
+rules:
+  # ─── Builder dispatch requires subsystem count ───
+  - name: builder-count-gte-subsystems
+    condition:
+      field: context.action
+      operator: eq
+      value: dispatch_builder
+    action: require_check
+    priority: 100
+    description: "Builder dispatch count must be >= independent subsystem count."
+    check:
+      type: "count"
+      field: "builder_count"
+      operator: "gte"
+      value_field: "subsystem_count"
+
+  # ─── Designer dispatch requires Discovery (standard+) ───
+  - name: designer-needs-discovery
+    condition:
+      field: context.action
+      operator: eq
+      value: dispatch_designer
+    action: require_check
+    priority: 90
+    description: "Designer dispatch requires Discovery phase completed for standard+ depth."
+
+  # ─── Cannot dispatch single builder for multi-subsystem ───
+  - name: no-single-builder-multi-subsystem
+    condition:
+      field: context.subsystem_count
+      operator: gt
+      value: 3
+    action: require_check
+    priority: 80
+    description: "4+ subsystems require multiple parallel Builder dispatches, not one."
+
+  # ─── Visual Lead Protocol for UI tasks ───
+  - name: visual-lead-for-ui
+    condition:
+      field: context.is_ui_task
+      operator: eq
+      value: true
+    action: require_check
+    priority: 70
+    description: "UI tasks must follow Visual Lead Protocol — single Builder for CSS/HTML."

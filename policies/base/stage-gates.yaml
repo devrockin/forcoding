@@ -1,0 +1,80 @@
+# ForCoding v3.0 — Stage Gate Policy
+# Enforces sequential stage progression: gate files must exist before next stage.
+# With hash-based content integrity verification (I13).
+
+apiVersion: forcoding.toolkit/v1
+name: stage-gates
+version: "3.0"
+description: "Stage transition gates — validate .approved files before allowing next stage dispatch"
+default_action: allow
+
+rules:
+  # ─── Discovery → Designer gate ───
+  - name: discovery-before-designer
+    condition:
+      field: context.next_stage
+      operator: eq
+      value: designer
+    action: require_check
+    priority: 100
+    description: "Designer dispatch requires discovery.approved to exist with valid content hash."
+    check:
+      file: "docs/forcoding/gates/{date}-{topic}.discovery.approved"
+      hash_required: true
+      prev_required: false
+
+  # ─── Designer → Planner gate ───
+  - name: designer-before-planner
+    condition:
+      field: context.next_stage
+      operator: eq
+      value: planner
+    action: require_check
+    priority: 100
+    description: "Planner dispatch requires designer.approved to exist with valid content hash and prev_hash matching discovery."
+    check:
+      file: "docs/forcoding/gates/{date}-{topic}.designer.approved"
+      hash_required: true
+      prev_required: true
+      prev_file: "docs/forcoding/gates/{date}-{topic}.discovery.approved"
+
+  # ─── Planner → Builder gate (deep only) ───
+  - name: planner-before-builder
+    condition:
+      field: context.next_stage
+      operator: eq
+      value: builder
+    action: require_check
+    priority: 100
+    description: "Builder dispatch requires planner.approved (deep) or designer.approved (standard) with valid hashes."
+    check:
+      file: "docs/forcoding/gates/{date}-{topic}.planner.approved"
+      hash_required: true
+      prev_required: true
+      prev_file: "docs/forcoding/gates/{date}-{topic}.designer.approved"
+      skip_if_depth: ["quick", "standard"]
+
+  # ─── Builder → Auditor gate ───
+  - name: builder-before-auditor
+    condition:
+      field: context.next_stage
+      operator: eq
+      value: auditor
+    action: require_check
+    priority: 100
+    description: "Auditor dispatch requires builder-{N}.approved to exist with valid content hash and prev_hash matching planner."
+    check:
+      file: "docs/forcoding/gates/{date}-{topic}.builder-{N}.approved"
+      hash_required: true
+      prev_required: true
+      prev_file: "docs/forcoding/gates/{date}-{topic}.planner.approved"
+
+  # ─── RSI must check all gates ───
+  - name: rsi-gate-integrity
+    condition:
+      field: context.stage
+      operator: eq
+      value: rsi
+    action: require_check
+    priority: 50
+    description: "RSI must verify all gate files exist, hashes match, and chain of custody is intact."

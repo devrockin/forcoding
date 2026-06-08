@@ -1,0 +1,82 @@
+# ForCoding v3.0 — Quality Gate Policy
+# Quality requirements that must be verified at each stage.
+# Used by Auditor Pass 0 and RSI dispatch verification.
+
+apiVersion: forcoding.toolkit/v1
+name: quality-gates
+version: "3.0"
+description: "Quality gates — verify spec compliance, UI standards, and process integrity"
+default_action: allow
+
+rules:
+  # ─── Spec quality: Given/When/Then coverage ≥ 80% ───
+  - name: gwt-coverage
+    condition:
+      field: context.gwt_coverage
+      operator: lt
+      value: 0.8
+    action: deny
+    priority: 90
+    description: "Designer spec must have Given/When/Then for >= 80% of feature points."
+
+  # ─── UI tasks: Visual Concept defined ───
+  - name: visual-concept-required
+    condition:
+      field: context.is_ui_task
+      operator: eq
+      value: true
+    action: require_check
+    priority: 80
+    description: "UI tasks MUST have Visual Concept defined (style/colors/typography/feeling)."
+    check:
+      required_fields: ["visual_concept.style", "visual_concept.colors", "visual_concept.typography"]
+
+  # ─── UI tasks: ≥ 2 Delight Elements ───
+  - name: delight-elements-required
+    condition:
+      field: context.is_ui_task
+      operator: eq
+      value: true
+    action: require_check
+    priority: 75
+    description: "UI tasks MUST include >= 2 delight elements."
+
+  # ─── UI tasks: Interaction states ───
+  - name: interaction-states-required
+    condition:
+      field: context.is_ui_task
+      operator: eq
+      value: true
+    action: require_check
+    priority: 70
+    description: "UI tasks MUST specify interaction states (loading/empty/error/active/success)."
+
+  # ─── Auditor Pass 0: process compliance ───
+  - name: auditor-pass-0-required
+    condition:
+      field: context.stage
+      operator: eq
+      value: audit
+    action: require_check
+    priority: 60
+    description: "Auditor MUST run Pass 0 (process compliance) before Pass 1-4."
+
+  # ─── Full-stack: API contract required ───
+  - name: api-contract-required
+    condition:
+      field: context.project_type
+      operator: eq
+      value: fullstack
+    action: require_check
+    priority: 50
+    description: "Full-stack projects MUST have API Contract in Designer spec (I9)."
+
+  # ─── Polish Round mandatory for UI tasks ───
+  - name: polish-round-required
+    condition:
+      field: context.is_ui_task
+      operator: eq
+      value: true
+    action: require_check
+    priority: 40
+    description: "UI tasks MUST have Polish Round (Round 2) completed before Auditor validation."
