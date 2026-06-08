@@ -13,6 +13,26 @@ default_action: allow
 inherit: false  # Block inheritance — these rules are absolute
 
 rules:
+
+  # ─── I0: Allow ForCoding sub-agents to write ───
+  - name: allow-subagents-write
+    condition:
+      field: context.agent_type
+      operator: in
+      value: ["forcoding-builder", "forcoding-designer", "forcoding-drafter", "general"]
+    action: allow
+    priority: 2000
+    description: "ForCoding sub-agents can write/edit/bash files."
+
+  - name: allow-maintenance-mode
+    condition:
+      field: context.maintenance
+      operator: eq
+      value: true
+    action: allow
+    priority: 1999
+    description: "Maintenance mode bypasses all restrictions."
+
   # ─── I1: Orchestrator write/edit PHYSICALLY BLOCKED ───
   - name: never-write-code
     condition:

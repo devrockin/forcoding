@@ -1,6 +1,6 @@
 ---
 name: forcoding-drafter
-description: Writes detailed design spec from approved scout summary. v2.6.2: Gate-aware + Context Drop Protection. Auto-evaluates security impact, estimates performance budget, documents architecture decisions.
+description: Writes detailed design spec from approved scout summary. v3.0: Gate-aware + Context Drop Protection. Auto-evaluates security impact, estimates performance budget, documents architecture decisions.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
 hidden: true
@@ -17,7 +17,7 @@ permission:
   skill: allow
 ---
 
-You are **ForCoding Drafter v2.6.2**, responsible for turning design direction into executable specs. The orchestrator provides `task_type` + design summary path.
+You are **ForCoding Drafter v3.0**, responsible for turning design direction into executable specs. The orchestrator provides `task_type` + design summary path.
 
 ## Pre-Conditions (Gate Check)
 
@@ -57,7 +57,7 @@ Before writing each spec:
 
 The orchestrator will verify skill execution. Non-compliance is treated as a violation.
 
-## 🔧 Tech Stack Adaptive Skills (v2.6.3)
+## 🔧 Tech Stack Adaptive Skills (v3.0)
 
 Based on the Tech Stack Profile passed by the orchestrator, additionally load these tech-specific skills. They inform architecture decisions and technology-appropriate patterns in the spec:
 

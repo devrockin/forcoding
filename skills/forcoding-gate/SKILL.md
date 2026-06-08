@@ -2,7 +2,7 @@
 name: forcoding-gate
 description: ⛔ MANDATORY pre-code gate. Count subsystems → determine depth → select flow → commit to delegation. Auto-triggered on: build, create, implement, make, design, UI, page, 做, 实现, 构建, 创建, 界面, 页面, 计时器, 动画. NEVER bypass. If Builder count > 0 → edit/write tools BLOCKED. Two prior incidents (weather card 2026-06-06, focus forest 2026-06-08) caused by skipping this gate.
 ---
-# forcoding-gate — Pre-Flight Gate v2.6.2
+# forcoding-gate — Pre-Flight Gate v3.0
 
 ## ⛔ Purpose
 
@@ -41,7 +41,7 @@ List EVERY independent subsystem. Be honest. Think: "could this be its own class
 
 **Rule**: "one HTML file" ≠ one subsystem. The file is a container, not a subsystem count.
 
-### Step 1.5: Detect Project Type (v2.7)
+### Step 1.5: Detect Project Type (v3.0)
 
 ```
 Does the request involve BOTH backend code AND frontend code?
@@ -63,7 +63,7 @@ Does the request involve BOTH backend code AND frontend code?
     N = 2-3, has interaction states → 📋 standard
     N = 4+, or drag/gesture, or 3+ animation types → 🏗️ deep
 
-  Project type override (v2.7, I4):
+  Project type override (v3.0, I4):
     project_type=fullstack → FORCE deep (regardless of N)
 
   Final depth = max(base_depth, project_type_depth)
@@ -85,7 +85,7 @@ Does the request involve BOTH backend code AND frontend code?
   🏗️ deep     → Intent → Discovery → Designer → Planner → Builder(s) → Auditor(s) → RSI
 ```
 
-**Same-File Parallel 规则 (v2.6.3)**:
+**Same-File Parallel 规则 (v3.0)**:
 ```
   同一文件的 N 个子系统 → 可启用 PARALLEL SAME-FILE 模式
   条件:

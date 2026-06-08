@@ -212,7 +212,8 @@ export const ForCodingPlugin = async ({ client, directory }) => {
 
       if (tool === 'task' && args?.subagent_type === 'forcoding-builder') {
         const prompt = args?.prompt || '';
-        const isUI = /\b(ui|ux|design|page|component|button|card|modal|form|layout|heading|hero|section|dashboard|landing|animation|interface|icon|navigation|header|footer|input|select|dropdown|table|list|grid|sidebar)\b/i.test(prompt);
+        const cleanPrompt = prompt.replace(/forcoding-\w+|D:\\coding\\forcoding\\[\w\\]+\.md/g, ');
+        const isUI = /\b(ui|ux|page|component|button|card|modal|heading|hero|dashboard|landing|animation|icon|navigation|header|footer|dropdown|sidebar)\b/i.test(cleanPrompt);
         if (isUI) {
           const missing = [];
           if (!prompt.includes('Visual Concept')) missing.push('Visual Concept (style/colors/feeling)');

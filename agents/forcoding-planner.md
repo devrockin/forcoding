@@ -1,6 +1,6 @@
 ---
 name: forcoding-planner
-description: Transforms specs into bite-sized executable plans (2-5min/task). v2.6.3: Tech stack adaptive skills (12 detection items). Generates SPOQ DAG wave dispatch for parallel scheduling. Generates VERIMAP Python VFs per subtask. DRY/YAGNI/TDD.
+description: Transforms specs into bite-sized executable plans (2-5min/task). v3.0: Tech stack adaptive skills (12 detection items). Generates SPOQ DAG wave dispatch for parallel scheduling. Generates VERIMAP Python VFs per subtask. DRY/YAGNI/TDD.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
 hidden: true
@@ -134,7 +134,7 @@ Python VFs are:
 
 All types also load `forcoding-parallel`, `forcoding-core`.
 
-### 🔧 Tech Stack Adaptive Skills (v2.6.3 — layer 2, on top of task_type skills)
+### 🔧 Tech Stack Adaptive Skills (v3.0 — layer 2, on top of task_type skills)
 
 In addition to task_type skills above, auto-load based on the **Tech Stack Profile** passed by the orchestrator. These skills inform plan structure, task decomposition, and verification strategy:
 
@@ -198,9 +198,9 @@ The orchestrator checks whether skills were actually executed. Not executing is 
 - **[S]** = 1-3min **[M]** = 5-10min **[L]** = 15-30min
 - **Security**: 🔴 auth/data 🟡 user input 🟢 internal only
 - **Parallel groups**: different files, no cross-imports, no shared types
-- **Same-file parallel** (v2.6.3): 同一文件内独立子系统 → 可为同文件组，但必须定义 Section 标记
+- **Same-file parallel** (v3.0): 同一文件内独立子系统 → 可为同文件组，但必须定义 Section 标记
 
-### Same-File Parallel Planning (v2.6.3)
+### Same-File Parallel Planning (v3.0)
 
 当子系统在同一个文件内但逻辑独立时（如一个 HTML 文件中的计时器/森林/粒子），Plan 可以：
 
@@ -238,7 +238,7 @@ The orchestrator checks whether skills were actually executed. Not executing is 
 - No shared type modifications ✅
 - Otherwise split
 
-## Plan Self-Review (v2.6 — Superpowers-inspired: 发出前自审)
+## Plan Self-Review (v3.0 — Superpowers-inspired: 发出前自审)
 
 在输出计划到文件之前，必须执行以下自审。这是强制步骤，不是可选。
 

@@ -1,6 +1,6 @@
 ---
 name: forcoding-builder
-description: Executes approved plan with edit discipline, TDD cycle, Self-Refine (≤3 iterations), and Auditor review per task. v2.6.3: Tech stack adaptive skills (16 detection items). Think Max. All interaction states + design taste checklist enforced.
+description: Executes approved plan with edit discipline, TDD cycle, Self-Refine (≤3 iterations), and Auditor review per task. v3.0: Tech stack adaptive skills (16 detection items). Think Max. All interaction states + design taste checklist enforced.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
 hidden: true
@@ -75,7 +75,7 @@ If absent and task involves UI → flag to orchestrator: "Auto-Inject Manifest m
 
 Autopilot mode is driven by orchestrator's autonomy flag — no separate skill needed.
 
-### 🔧 Tech Stack Adaptive Skills (v2.6.3 — layer 2, on top of task_type skills)
+### 🔧 Tech Stack Adaptive Skills (v3.0 — layer 2, on top of task_type skills)
 
 In addition to task_type skills above, auto-load based on the **Tech Stack Profile** passed by the orchestrator:
 
@@ -375,7 +375,7 @@ Before committing, review all new comments:
 - Does the comment explain something the code doesn't already say?
 - Is it just restating the code in prose? If so, delete it.
 
-## ⛔ Anti-Rationalization Table (v2.6 — Superpowers-inspired)
+## ⛔ Anti-Rationalization Table (v3.0 — Superpowers-inspired)
 
 Builder 遇到以下想法 → STOP. 这些是合理化的借口，不是正当理由：
 

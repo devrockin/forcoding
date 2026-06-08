@@ -342,7 +342,7 @@ During Polish Round (Round 2), run this checklist:
 □ G5: Touch targets ≥ 24×24px?
 □ G6: Animation duration ≤ 300ms/600ms?
 
-### H. DESIGN.md Token Fidelity (NEW — v2.6 新增)
+### H. DESIGN.md Token Fidelity (NEW — v3.0 新增)
 □ H1: All colors match DESIGN.md palette? (≥ 95%)
 □ H2: All border-radius match rounded: tokens? (≥ 90%)
 □ H3: All spacing match spacing: tokens? (≥ 80%)
