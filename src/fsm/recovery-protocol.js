@@ -31,7 +31,7 @@ export class FSMRecoveryProtocol {
     const now = Date.now();
     const triggers = [];
 
-    // Trigger 1: idle >30s with pending block
+    // Trigger 1a: idle >30s with pending block
     if (
       state.currentState === STATE.IDLE &&
       state.lastBlockedAction &&
@@ -42,6 +42,21 @@ export class FSMRecoveryProtocol {
         type: 'idle_timeout',
         recoveryAction: 'auto_hitl',
         message: `Idle for ${(now - state.lastBlockedAt) / 1000}s with pending block. Escalating to HITL.`,
+      });
+    }
+
+    // Trigger 1b: idle >30s with no classification (stale unclassified session)
+    if (
+      state.currentState === STATE.IDLE &&
+      !state.classificationLocked &&
+      !state.classification &&
+      state.updatedAt &&
+      (now - state.updatedAt) > IDLE_TIMEOUT_MS
+    ) {
+      triggers.push({
+        type: 'stale_idle',
+        recoveryAction: 'auto_hitl',
+        message: `Idle session with no classification for ${(now - state.updatedAt) / 1000}s. Escalating to HITL with re-classification.`,
       });
     }
 

@@ -92,7 +92,25 @@ export const ForCodingPlugin = async ({ client, directory }) => {
               return;
             }
             if (health.recoveryAction === 'auto_hitl') {
-              await fsm.forceTransition(state.currentState, STATE.AWAITING_HITL, sessionId);
+              // Classify the current message and inject HITL confirmation
+              const msg = output.message || state.originalPrompt || '';
+              if (msg.trim().length >= 3 && !state.classification) {
+                try {
+                  const reclass = await classifier.classify(msg, directory);
+                  await store.save({ sessionId, classification: reclass, originalPrompt: msg, currentState: STATE.CLASSIFYING });
+                  await fsm.forceTransition(STATE.CLASSIFYING, STATE.AWAITING_HITL, sessionId);
+                } catch (_) {
+                  await fsm.forceTransition(state.currentState, STATE.AWAITING_HITL, sessionId);
+                }
+              } else {
+                await fsm.forceTransition(state.currentState, STATE.AWAITING_HITL, sessionId);
+              }
+              // Inject HITL block
+              const current = store.load(sessionId);
+              const hitlBlock = hitl.renderer.render(current.classification || { taskType: 'unknown', weight: 'unknown' });
+              if (hitlBlock) {
+                output.messages = [...(output.messages || []), { role: 'user', content: hitlBlock }];
+              }
               return;
             }
             if (health.recoveryAction === 'reset_idle') {
