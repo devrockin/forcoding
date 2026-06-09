@@ -1,12 +1,12 @@
-# ForCoding v3.0
+# ForCoding_Arch
 
 **Policy-Enforced Agent Orchestrator Plugin for OpenCode** — Design Thinking Double Diamond workflow with deterministic governance engine.
 
-> v3.0: Plugin-architecture rewrite. Policy Engine (YAML→deterministic evaluation) + Audit Trail (cryptographic hash chain) + Gate System (MD5 content hashes + chain of custody). Inspired by Microsoft AGT, NLAH, SAL, and FORGE. Rules enforced at infrastructure layer — NOT in prompts.
+> v3.0: Plugin-architecture rewrite. Policy Engine (YAML→deterministic evaluation) + Audit Trail (cryptographic hash chain) + Gate System (MD5 content hashes + chain of custody). Inspired by deterministic governance research. Rules enforced at infrastructure layer — NOT in prompts.
 
 ## OpenCode Plugin Installation
 
-ForCoding v3.0 is an **OpenCode plugin** — install once, works across all projects.
+ForCoding_Arch is an **OpenCode plugin** — install once, works across all projects.
 
 ### Method 1: Local path (development)
 
@@ -37,7 +37,7 @@ node install.mjs
 ## Architecture
 
 ```
-ForCoding v3.0 Plugin
+ForCoding_Arch Plugin
 ├── Policy Engine (src/engine/)     ← Deterministic YAML policy evaluation
 ├── Audit Trail (src/audit/)        ← JSONL + cryptographic hash chain
 ├── Gate System (src/gates/)        ← .approved files + MD5 chain of custody
@@ -47,7 +47,7 @@ ForCoding v3.0 Plugin
 ```
 
 - [OpenCode Desktop](https://opencode.ai) 已安装
-- 一个可用的 DeepSeek V4 模型提供商（opencode-go、bifrost 等）
+- 一个可用的 A configured coding model provider
 
 ### 安装
 
@@ -184,7 +184,7 @@ Insight (Empathize) → Define+Explore → Plan → Build (Prototype→Produce) 
 
 ## Flash-Only 模型路由
 
-v2.5 采用 Flash-Only 架构。所有阶段使用 `opencode-go/deepseek-v4-flash` Think Max：
+v2.5 采用 Flash-Only 架构。所有阶段使用 `opencode-go/A configured coding model provider
 
 | 证据 | Flash Max | Pro Max |
 |:----|:---------|:--------|
@@ -284,13 +284,13 @@ node bin/forcoding.mjs health          # 健康检查
 ```json
 {
   "agent": {
-    "forcoding":          { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-designer": { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-scout":    { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-drafter":  { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-planner":  { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-builder":  { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" },
-    "forcoding-auditor":  { "model": "opencode-go/deepseek-v4-flash",     "variant": "max" }
+    "forcoding":          { "model": "opencode-go/A configured coding model provider
+    "forcoding-designer": { "model": "opencode-go/A configured coding model provider
+    "forcoding-scout":    { "model": "opencode-go/A configured coding model provider
+    "forcoding-drafter":  { "model": "opencode-go/A configured coding model provider
+    "forcoding-planner":  { "model": "opencode-go/A configured coding model provider
+    "forcoding-builder":  { "model": "opencode-go/A configured coding model provider
+    "forcoding-auditor":  { "model": "opencode-go/A configured coding model provider
   }
 }
 ```
@@ -301,7 +301,7 @@ node bin/forcoding.mjs health          # 健康检查
 
 - **运行时**：Node.js (ESM)
 - **平台**：OpenCode Desktop (plugin + agent + skill)
-- **模型**：DeepSeek V4 Flash (默认) / Pro (逃逸舱)
+- **模型**：A configured coding model provider
 - **许可证**：MIT
 
 ---
@@ -342,4 +342,4 @@ forcoding/
 
 ## 许可证
 
-[Apache 2.0](./LICENSE)
+[Non-Commercial Personal Use](./LICENSE)

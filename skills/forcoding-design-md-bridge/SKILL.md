@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-design-md-bridge
 description: Bridges ForCoding ↔ DESIGN.md ecosystem. Generates DESIGN.md from Visual Concepts. Provides reference library index (73 brands from VoltAgent/awesome-design-md). Injects structured design tokens into Builder prompts. Uses {path.to.token} reference syntax for cross-referencing. Integrates with @google/design.md CLI for lint/diff/export.

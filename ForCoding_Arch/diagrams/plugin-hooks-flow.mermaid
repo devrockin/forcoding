@@ -1,0 +1,53 @@
+sequenceDiagram
+    participant U as User
+    participant CM as chat.message
+    participant MT as messages.transform
+    participant TEB as tool.execute.before
+    participant TEA as tool.execute.after
+    participant O as Orchestrator (LLM)
+    participant SA as Sub-Agent
+
+    Note over U,SA: === CLASSIFICATION PHASE ===
+    U->>CM: "make a tank battle game"
+    CM->>CM: classify() → canvas-game, high confidence
+    CM->>CM: fsm: idle → classifying → awaiting_hitl
+    CM->>O: HITL confirmation (original message held)
+
+    U->>CM: "ok"
+    CM->>CM: parseResponse() → confirm
+    CM->>CM: fsm: awaiting_hitl → discovery
+    CM->>CM: lock classification
+    CM->>O: original message + classification context
+
+    Note over U,SA: === DISCOVERY PHASE ===
+    O->>O: Analysis complete
+    Note over O: fsm: discovery → build (light task)
+
+    Note over U,SA: === BUILD PHASE ===
+    O->>TEB: task(@forcoding-builder, prompt)
+    TEB->>TEB: phaseLock.check() → OK (can dispatch builder)
+    TEB->>TEB: preBuildGate.validate() → OK (all checks pass)
+    TEB->>SA: dispatch builder
+    SA-->>TEA: output
+
+    TEA->>TEA: truncationRecovery.detect() → OK
+    TEA->>TEA: postBuildValidator.check() → OK
+    TEA->>TEA: autoAdvance(build → audit)
+    MT->>O: [ForCoding] Builder complete. Dispatch Auditor.
+
+    Note over U,SA: === AUDIT PHASE ===
+    O->>TEB: task(@forcoding-auditor, prompt)
+    TEB->>TEB: verify state === audit
+    TEB->>SA: dispatch auditor
+    SA-->>TEA: output: VERDICT: VALIDATED
+
+    TEA->>TEA: parseAuditorVerdict() → VALIDATED
+    TEA->>TEA: cycleDetector.reset()
+    TEA->>TEA: autoAdvance(audit → rsi)
+    MT->>O: [ForCoding] Auditor passed. Begin RSI.
+
+    Note over U,SA: === RSI PHASE ===
+    O->>O: Screenshots + visual verification
+    Note over O: fsm: rsi → done
+
+    Note over U: Task complete

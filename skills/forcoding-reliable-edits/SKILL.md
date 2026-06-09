@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-reliable-edits
 description: Use when editing files — ensures every edit is validated against current file content. Read before edit, copy exactly, verify after. Prevents stale-line errors.

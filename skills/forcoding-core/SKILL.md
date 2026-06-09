@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-core
 description: Master orchestrator skill (v3.0). Policy-enforced by plugin engine. Design thinking double-diamond workflow, Pre-Flight Gate, intent refinement, constraint-driven insight, VERIMAP VFs, Green/Red zone classification, gate metrics, RSI reality check, capability scan, delegation mandate. Rules enforced by policies/base/*.yaml — NOT by prompt compliance.

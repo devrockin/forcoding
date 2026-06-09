@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-visual-review
 description: Measurable aesthetic audit for UI tasks. 14 MEASURABLE criteria (not subjective). Each has PASS/FAIL test. Used by Builder (Polish Round) and Auditor (visual pass).

@@ -1,332 +1,189 @@
-/**
- * ForCoding v3.0 — OpenCode Plugin Entry Point
- *
- * Aligned with OpenCode Plugin SDK v1.1.11+ Hooks interface.
- * Docs: https://open-code.ai/en/docs/plugins
- * Source: https://github.com/sst/opencode/blob/main/packages/plugin/src/index.ts
- *
- * Key fixes from v3.0 initial:
- *   - tool.execute.before: uses `input.tool` + `output.args` + `throw Error()`
- *   - tool.execute.after: uses correct (input, output) signature
- *   - event hook: captures all events including permission.asked (perm.ask hook is broken per #9229)
- *   - permission.ask hook: documented but NOT triggered by OpenCode's PermissionNext
- *
- * Architecture inspired by Microsoft AGT (Agent Governance Toolkit):
- *   Policy Engine (YAML→deterministic) → Tool Interception → Audit Trail → Gate System
- * "prompt is not a control surface" — rules enforced at infrastructure layer.
- */
+// .opencode/plugins/forcoding.js
+// ForCoding_Arch — Deterministic Harness Plugin for OpenCode
 
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
-import { fileURLToPath } from 'url';
+import { StateMachine } from '../../src/fsm/state-machine.js';
+import { StateStore } from '../../src/fsm/state-store.js';
+import { STATE } from '../../src/fsm/transitions.js';
+import { IntentClassifier } from '../../src/classifier/intent-classifier.js';
+import { ScopeScorer } from '../../src/classifier/scope-scorer.js';
+import { WorkflowRegistry } from '../../src/workflow/registry.js';
+import { HITLCheckpoint } from '../../src/hitl/checkpoint.js';
+import { ResponseParser } from '../../src/hitl/response-parser.js';
+import { PreBuildGate } from '../../src/enforcer/pre-build-gate.js';
+import { PhaseLock } from '../../src/enforcer/phase-lock.js';
+import { ToolAllowlist } from '../../src/enforcer/tool-allowlist.js';
+import { ContextBudgetManager } from '../../src/enforcer/context-budget.js';
+import { PostBuildValidator } from '../../src/enforcer/post-build-validator.js';
+import { TruncationRecovery } from '../../src/enforcer/truncation-recovery.js';
+import { CycleDetector } from '../../src/enforcer/cycle-detector.js';
+import { GateSystem } from '../../src/gates/gate-system.mjs';
+import { AuditTrail } from '../../src/audit/audit-trail.mjs';
+import { mkdirSync } from 'fs';
+import { join } from 'path';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const POLICIES_DIR = path.join(PROJECT_ROOT, 'policies');
-const ENGINE_PATH = path.join(PROJECT_ROOT, 'src', 'engine', 'policy-engine.mjs');
-const AUDIT_PATH = path.join(PROJECT_ROOT, 'src', 'audit', 'audit-trail.mjs');
-const GATES_PATH = path.join(PROJECT_ROOT, 'src', 'gates', 'gate-system.mjs');
+const GATE_DIR = 'docs/forcoding/gates';
+const STATE_DIR = 'docs/forcoding/state';
+const AUDIT_DIR = 'docs/forcoding/audit';
 
-// ─── Bootstrap ────────────────────────────────────────────────────
-
-const extractAndStripFrontmatter = (content) => {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) return { frontmatter: {}, content };
-  const frontmatterStr = match[1], body = match[2], frontmatter = {};
-  for (const line of frontmatterStr.split('\n')) {
-    const idx = line.indexOf(':');
-    if (idx > 0) frontmatter[line.slice(0, idx).trim()] = line.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
-  }
-  return { frontmatter, content: body };
-};
-
-let _bootstrapCache;
-const getBootstrap = () => {
-  if (_bootstrapCache !== undefined) return _bootstrapCache;
-  const sp = path.join(PROJECT_ROOT, 'skills', 'forcoding-core', 'SKILL.md');
-  if (!fs.existsSync(sp)) { _bootstrapCache = null; return null; }
-  const { content } = extractAndStripFrontmatter(fs.readFileSync(sp, 'utf8'));
-  _bootstrapCache = `<EXTREMELY_IMPORTANT>
-You are powered by ForCoding v3.0. Governance is enforced by the Policy Engine — rules are deterministic, not prompt-based.
-
-${content}
-
-**ForCoding v3.0 Sub-agents:**
-- @forcoding — orchestrator (Design Thinking + Policy Engine enforced)
-- @forcoding-designer — spec with Kata5問 + Given/When/Then + API Contract
-- @forcoding-scout — codebase exploration
-- @forcoding-drafter — lightweight spec
-- @forcoding-planner — plan with SPOQ DAG + VERIMAP VFs
-- @forcoding-builder — execution with TDD + Self-Refine + Polish Round
-- @forcoding-auditor — 5-Pass review (Pass 0→1→2→2.5→3→4)
-
-**Governance (v3.0):** Policy Engine (YAML) + Audit Trail (hash chain) + Gate System (MD5 chain)
-</EXTREMELY_IMPORTANT>`;
-  return _bootstrapCache;
-};
-
-// ─── Lazy-loaded modules ──────────────────────────────────────────
-
-let _engineMod, _auditMod;
-const getEngine = async () => { if (!_engineMod) _engineMod = await import(`file://${ENGINE_PATH}`); return _engineMod; };
-const getAudit = async () => { if (!_auditMod) _auditMod = await import(`file://${AUDIT_PATH}`); return _auditMod; };
-
-// ─── Policy evaluation helper ─────────────────────────────────────
-
-const evalAction = async (projectDir, tool, args) => {
-  try {
-    const { quickEval } = await getEngine();
-    const ctx = { action: { type: tool }, tool, args };
-    if (projectDir) ctx.directory = projectDir;
-    const decision = quickEval(ctx);
-    // Audit only on deny (avoid spamming on every tool call)
-    if (!decision.allowed) {
-      try {
-        const { AuditTrail } = await getAudit();
-        const audit = new AuditTrail({ sessionId: `fc3-${Date.now().toString(36)}`, projectDir: projectDir || process.cwd() });
-        audit.record({ action: `tool:${tool}`, policy: 'never-rules', decision, context: { args: JSON.stringify(args).slice(0, 200) } });
-      } catch {}
-    }
-    return decision;
-  } catch (err) {
-    console.warn(`[ForCoding PolicyEngine] Eval error: ${err.message}`);
-    return { allowed: true, rule: 'engine-error', reason: err.message };
-  }
-};
-
-// ─── Plugin Export ─────────────────────────────────────────────────
+function ensureDirs(dir) {
+  [STATE_DIR, GATE_DIR, AUDIT_DIR].forEach(d => mkdirSync(join(dir, d), { recursive: true }));
+}
 
 export const ForCodingPlugin = async ({ client, directory }) => {
-  console.log('[ForCoding v3.0] Initializing — Policy Engine + Event Hook + Tool Interception');
-
-  const skillsDir = path.resolve(PROJECT_ROOT, 'skills');
+  ensureDirs(directory);
+  const store = new StateStore(directory);
+  const audit = new AuditTrail(join(directory, AUDIT_DIR));
+  const gates = new GateSystem(join(directory, GATE_DIR));
+  const fsm = new StateMachine(store, gates);
+  const classifier = new IntentClassifier();
+  const phaseLock = new PhaseLock(fsm);
+  const workflow = WorkflowRegistry;
+  const preBuildGate = new PreBuildGate(workflow);
+  const truncation = new TruncationRecovery();
+  const validator = new PostBuildValidator();
+  const cycleDetector = new CycleDetector(store);
+  const contextBudget = new ContextBudgetManager();
+  const hitl = new HITLCheckpoint();
 
   return {
-    // ── Config ────────────────────────────────────────────────────
-    config: async (config) => {
-      config.skills = config.skills || {};
-      config.skills.paths = config.skills.paths || [];
-      if (!config.skills.paths.includes(skillsDir)) {
-        config.skills.paths.push(skillsDir);
-      }
-    },
+    'chat.message': async (input, output) => {
+      const sessionId = input.sessionID || 'default';
+      const state = store.load(sessionId);
+      if (state.paused) return;
 
-    // ── Event Hook: comprehensive audit + permission capture ─────
-    // Handles ALL system events including permission.asked
-    // (permission.ask hook is broken per OpenCode issue #9229)
-    event: async ({ event }) => {
-      // Log permission requests for HITL audit trail (I7)
-      if (event.type === 'permission.asked') {
-        const p = event.properties || {};
-        console.log(`[ForCoding] Permission asked: tool=${p.tool}, action=${p.action || 'unknown'}`);
-      }
-      // Log tool execution events
-      if (event.type === 'tool.execute.before') {
-        const p = event.properties || {};
-        if (p.tool === 'write' || p.tool === 'edit') {
-          console.warn(`[ForCoding] ⚠️ ${p.tool} tool invoked — should be blocked by agent permission + tool hook`);
+      // Supervisor override
+      const override = ResponseParser.detectSupervisor(output.message, state);
+      if (override) {
+        switch (override.command) {
+          case 'skip_audit': await fsm.forceTransition(state.currentState, STATE.RSI, sessionId); break;
+          case 'force_build': await fsm.forceTransition(state.currentState, STATE.BUILD, sessionId); break;
+          case 'back_to_design': await fsm.forceTransition(state.currentState, STATE.DESIGN, sessionId); break;
+          case 'pause': await store.save({ sessionId, paused: true, pausedAt: state.currentState }); break;
+          case 'resume': await store.save({ sessionId, paused: false }); break;
+          case 'shortcut': await store.save({ sessionId, workflowOverride: 'trivial' }); break;
+          case 'full': await store.save({ sessionId, workflowOverride: 'major' }); break;
         }
-      }
-    },
-
-    // ── tool.execute.before: PRE-EXECUTION INTERCEPTION ──────────
-    // Official API: input = { tool, sessionID, callID }, output = { args }
-    // Block by THROWING an Error (return value is ignored)
-    // Docs: https://open-code.ai/en/docs/plugins
-    'tool.execute.before': async (input, output) => {
-      const { tool } = input;
-      const args = output.args || {};
-
-      // ═══════════════════════════════════════════════════════════
-      // I1: STRUCTURALLY DENY write/edit for orchestrator
-      // Combined with agent YAML `write: deny, edit: deny` for defense-in-depth
-      // ═══════════════════════════════════════════════════════════
-
-      if (tool === 'write') {
-        const decision = await evalAction(directory, 'write', args);
-        if (!decision.allowed) {
-          throw new Error(
-            `[ForCoding PolicyEngine] WRITE BLOCKED — ${decision.reason}\n` +
-            `Rule: ${decision.rule}\n` +
-            `Action: Use task(subagent_type="forcoding-builder") to delegate code creation.`
-          );
-        }
+        await audit.record(sessionId, { event: 'supervisor_override', command: override.command, from: state.currentState });
+        return;
       }
 
-      if (tool === 'edit') {
-        const decision = await evalAction(directory, 'edit', args);
-        if (!decision.allowed) {
-          throw new Error(
-            `[ForCoding PolicyEngine] EDIT BLOCKED — ${decision.reason}\n` +
-            `Rule: ${decision.rule}\n` +
-            `Action: Use task(subagent_type="forcoding-builder") to delegate code modification.`
-          );
-        }
-
-        // ── Edit reliability check (3-level matching) ────────────
-        // Only runs if edit was allowed by policy engine
-        const { filePath, oldString } = args;
-        if (!filePath || oldString === undefined) return;
-
-        const resolvedPath = path.resolve(filePath);
-        for (let retries = 0; retries <= 3; retries++) {
-          try {
-            if (!fs.existsSync(resolvedPath)) return;
-            const content = fs.readFileSync(resolvedPath, 'utf-8');
-            if (content.includes(oldString)) return;
-            const norm = (s) => s.replace(/\s+/g, ' ').trim();
-            if (norm(content).includes(norm(oldString)) && norm(oldString).length > 0) return;
-
-            const oldLines = oldString.split('\n').map(l => l.trim()).filter(Boolean);
-            const contentLines = content.split('\n');
-            let matches = 0;
-            for (const ol of oldLines) {
-              for (const cl of contentLines) {
-                if (cl.includes(ol) || norm(cl).includes(norm(ol))) { matches++; break; }
-              }
-            }
-            if (oldLines.length > 0 && matches / oldLines.length > 0.8) return;
-          } catch { return; }
-        }
-        throw new Error(`[ForCoding] Edit reliability check: oldString not found in ${resolvedPath} after 3 retries`);
-      }
-
-      // ═══════════════════════════════════════════════════════════
-      // I1: Dangerous bash blocked
-      // ═══════════════════════════════════════════════════════════
-
-      if (tool === 'bash') {
-        const decision = await evalAction(directory, 'bash', args);
-        if (!decision.allowed) {
-          throw new Error(
-            `[ForCoding PolicyEngine] BASH BLOCKED — ${decision.reason}\n` +
-            `Allowed bash commands: git status/diff/log/add/commit, npm install/test, npx, node --check`
-          );
-        }
-      }
-
-      // ═══════════════════════════════════════════════════════════
-      // PRE-BUILDER GATE: UI task validation
-      // ═══════════════════════════════════════════════════════════
-
-      if (tool === 'task' && args?.subagent_type === 'forcoding-builder') {
-        const prompt = args?.prompt || '';
-        const cleanPrompt = prompt.replace(/forcoding-\w+|D:\\coding\\forcoding\\[\w\\]+\.md/g, ');
-        const isUI = /\b(ui|ux|page|component|button|card|modal|heading|hero|dashboard|landing|animation|icon|navigation|header|footer|dropdown|sidebar)\b/i.test(cleanPrompt);
-        if (isUI) {
-          const missing = [];
-          // S1: Visual inspection evidence (not just text)
-          const hasVisualSection = /##\s*VISUAL\s+(REFERENCE|INSPECTION|CONCEPT|ANALYSIS)/i.test(prompt);
-          const hasUrl = /https?:\/\/[^\s)"]+/i.test(prompt);
-          const hasScreenshot = /screenshot|截[图屏]|browser.*inspect|visually.*(review|check|inspected)/i.test(prompt);
-          const hasAnalysis = prompt.includes('Visual Concept') && prompt.includes('##') && prompt.includes('style:') && prompt.includes('colors:');
-
-          if (!hasVisualSection && !hasAnalysis) {
-            missing.push('VISUAL REFERENCES section (## VISUAL CONCEPT with style/colors/typography/feeling)');
-          }
-          if (!hasUrl) {
-            missing.push('Source reference URL (https://...)');
-          }
-          if (!hasScreenshot) {
-            missing.push('Visual inspection evidence (screenshot or browser review performed)');
-          }
-          if (!/Delight|delight element|shine|ripple|haptic|badge|ring|export|spring|staggered|conic-gradient|backdrop-filter|vibrate/i.test(prompt)) {
-            missing.push('>= 2 Delight Elements');
-          }
-          if (!/interaction stat|loading.*empty.*error|empty.*error.*loading|all states|state:|loading state|empty state|error state/i.test(prompt)) {
-            missing.push('Interaction states (loading/empty/error/active)');
-          }
-          // S3: Auto-Inject — require UI skills loaded in prompt
-          if (!/forcoding-ui-checklist/i.test(prompt)) {
-            missing.push('forcoding-ui-checklist skill (auto-inject)');
-          }
-          if (!/forcoding-visual-review/i.test(prompt)) {
-            missing.push('forcoding-visual-review skill (auto-inject)');
-          }
-          if (!/design-taste-frontend/i.test(prompt)) {
-            missing.push('design-taste-frontend skill (auto-inject)');
-          }
-          // S5: Polish Round — UI tasks must declare round number
-          if (!/ROUND\s*[:=]|round\s*[:=]\s*[12]|POLISH/i.test(prompt)) {
-            missing.push('ROUND declaration (e.g., ROUND=1, POLISH ROUND=2)');
-          }
-          if (missing.length > 0) {
-            throw new Error(
-              `[ForCoding Pre-Builder Gate] UI Builder dispatch BLOCKED — missing: ${missing.join(', ')}.\n` +
-              `Define these before dispatching Builder.`
-            );
-          }
-        }
-      }
-    },
-
-    // ── tool.execute.after: POST-EXECUTION VERIFICATION ──────────
-    // Official API: input = { tool, sessionID, callID, args }, output = { title, output, metadata }
-    'tool.execute.after': async (input, output) => {
-      if (input.tool !== 'edit') return;
-
-      const args = input.args || {};
-      const { filePath, newString } = args;
-      if (!filePath || !newString) return;
-
-      try {
-        const resolvedPath = path.resolve(filePath);
-        if (!fs.existsSync(resolvedPath)) { console.warn(`[ForCoding] Post-edit: file missing ${resolvedPath}`); return; }
-        if (output && output.output && output.output.includes && output.output.includes('error')) {
-          console.warn(`[ForCoding] Post-edit: tool returned error`);
+      // Awaiting HITL response
+      if (state.currentState === STATE.AWAITING_HITL) {
+        const response = hitl.parseResponse(output.message);
+        if (response.action === 'confirm') {
+          const scope = ScopeScorer.score(state.originalPrompt, state.projectScan || {});
+          const next = ScopeScorer.shouldSkipHarness(scope) ? STATE.BUILD : STATE.DISCOVERY;
+          await fsm.transition(STATE.AWAITING_HITL, next, sessionId);
+          store.lock(sessionId);
+          await audit.record(sessionId, { event: 'classification_confirmed', classification: state.classification, scope });
           return;
         }
-        const content = fs.readFileSync(resolvedPath, 'utf-8');
-        const normContent = content.replace(/\s+/g, ' ').trim();
-        const normNew = newString.replace(/\s+/g, ' ').trim();
-        if (!normContent.includes(normNew) && normNew.length > 0) {
-          console.warn(`[ForCoding] Post-edit verification: target content not found in ${resolvedPath}`);
-        }
-      } catch (err) {
-        console.warn(`[ForCoding] Post-edit error: ${err.message}`);
+      }
+
+      // New task → classify
+      if (!state.classificationLocked && state.currentState === STATE.IDLE) {
+        const msg = output.message;
+        if (!msg || msg.trim().length < 3) return;
+        const classification = await classifier.classify(msg, directory);
+        await store.save({ sessionId, classification, originalPrompt: msg, currentState: STATE.CLASSIFYING });
+        await fsm.transition(STATE.IDLE, STATE.CLASSIFYING, sessionId);
+        await fsm.transition(STATE.CLASSIFYING, STATE.AWAITING_HITL, sessionId);
+        hitl.injectConfirmation(classification, output.messages || []);
+        await audit.record(sessionId, { event: 'classification_proposed', classification });
+        return;
       }
     },
 
-    // ── experimental.chat.messages.transform: Bootstrap injection ─
-    'experimental.chat.messages.transform': async (_input, output) => {
-      const bootstrap = getBootstrap();
-      if (!bootstrap || !output.messages?.length) return;
+    'tool.execute.before': async (input, output) => {
+      const { tool } = input;
+      if (tool !== 'task') return;
+      const sessionId = input.sessionID || 'default';
+      const state = store.load(sessionId);
+      const agentType = output.args?.subagent_type;
+      if (!agentType) return;
 
-      // Find user messages and check if this is a design/UI task
-      const DESIGN_KEYWORDS = /\b(设计|界面|页面|UI|UX|design|component|page|button|card|modal|layout|landing|dashboard|hero|animation|icon|visual|style|color)\b/i;
-      let isDesignTask = false;
-      for (const msg of output.messages) {
-        if (msg.info?.role === 'user') {
-          for (const part of msg.parts) {
-            if (part.type === 'text' && DESIGN_KEYWORDS.test(part.text)) {
-              isDesignTask = true;
-              break;
-            }
-          }
-          if (isDesignTask) break;
+      // Tool allowlist check
+      if (!ToolAllowlist.isAllowed('task', state.currentState)) {
+        throw new Error(`[ForCoding] Task dispatch not allowed in state "${state.currentState}"`);
+      }
+
+      // Phase lock
+      const lockResult = phaseLock.check(agentType, sessionId);
+      if (!lockResult.allowed) {
+        const next = fsm.getNextStep(sessionId);
+        await store.save({ sessionId, lastBlockedAction: { agentType, errors: [lockResult.error], at: Date.now() } });
+        throw new Error(`[ForCoding] BLOCKED: ${agentType} in ${lockResult.current}. Next: ${next.stage}`);
+      }
+
+      // Pre-Build Gate
+      if (agentType === 'forcoding-builder') {
+        const isPrototype = state.currentState === STATE.PROTOTYPE;
+        const result = isPrototype ? { valid: true } : preBuildGate.validate(agentType, output.args?.prompt || '', state);
+        if (!result.valid) {
+          const errors = result.errors.map(e => `  - ${e.message}`).join('\n');
+          const fixes = preBuildGate.generateRemediation(result.errors, state).map(r => `  → ${r}`).join('\n');
+          await store.save({ sessionId, lastBlockedAction: { agentType, errors: result.errors, at: Date.now() } });
+          throw new Error(`[ForCoding] Pre-Build Gate FAILED:\n${errors}\nFix:\n${fixes}`);
         }
       }
 
-      const firstUser = output.messages.find(m => m.info?.role === 'user');
-      if (!firstUser?.parts?.length) return;
-      if (firstUser.parts.some(p => p.type === 'text' && p.text?.includes?.('EXTREMELY_IMPORTANT'))) return;
+      // Truncation recovery context
+      if (state.buildTruncated && agentType === 'forcoding-builder') {
+        output.args.prompt = `## TRUNCATION RECOVERY\nContinue from where cut off:\n\`\`\`\n${(state.partialOutput || '').slice(-500)}\n\`\`\`\n\n` + (output.args.prompt || '');
+      }
 
-      // Prepend bootstrap
-      firstUser.parts.unshift({ type: 'text', text: bootstrap });
+      // Context budget
+      const budget = contextBudget.track(output.args?.prompt || '', sessionId, store);
+      if (budget.level === 'emergency') {
+        throw new Error(`[ForCoding] Context at ${budget.percent}%. Compact session before dispatching.`);
+      }
+    },
 
-      // If design task, also prepend forced skill loading instructions
-      if (isDesignTask) {
-        const autoInject = `<IMPORTANT>
-This is a design/UI task. The following skills MUST be loaded before any builder dispatch:
-- skill("forcoding-ui-checklist") — mobile UI best practices
-- skill("forcoding-visual-review") — measurable aesthetic audit (14 criteria)
-- skill("design-taste-frontend") — calibrated color, typography, motion rules
+    'tool.execute.after': async (input, output) => {
+      const { tool } = input;
+      if (tool !== 'task') return;
+      const sessionId = input.sessionID || 'default';
+      const state = store.load(sessionId);
+      const agentType = input.args?.subagent_type;
 
-The Pre-Builder Gate will BLOCK any builder dispatch that does not include these skills in the prompt.
-</IMPORTANT>`;
-        // Insert right after bootstrap (before the original user message)
-        firstUser.parts.unshift({ type: 'text', text: autoInject });
+      if (agentType === 'forcoding-builder') {
+        const resultText = typeof output === 'string' ? output : (output?.output || '');
+
+        // Prototype: stay in loop
+        if (state.currentState === STATE.PROTOTYPE) {
+          output.title = '[PROTOTYPE] Review and iterate or say "ready".';
+          return;
+        }
+
+        // Post-build validation
+        const valResult = await validator.check(resultText, state.classification || {});
+        if (!valResult.canAutoAdvance) {
+          await audit.record(sessionId, { event: 'post_build_failed', validation: valResult });
+          return;
+        }
+
+        // Truncation detection
+        const truncResult = await truncation.detect(resultText, state.classification || {});
+        if (truncResult.truncated) {
+          const recovery = await truncation.handle(truncResult, resultText, { ...state.classification, sessionId });
+          if (recovery.action === 'retry') {
+            await store.update({ sessionId, buildRetries: recovery.retryCount, buildTruncated: true, partialOutput: resultText, truncationSignals: truncResult.signals });
+            await fsm.transition(STATE.BUILD, STATE.BUILD_RECOVERY, sessionId);
+            await audit.record(sessionId, { event: 'truncation_retry', retryCount: recovery.retryCount });
+            return;
+          }
+          await audit.record(sessionId, { event: 'truncation_exhausted', retries: recovery.retryCount });
+        }
+
+        // Clean completion → auto-advance
+        await store.update({ sessionId, buildRetries: 0, buildTruncated: false });
+        await fsm.autoAdvance(STATE.BUILD, STATE.AUDIT, sessionId);
+        await audit.record(sessionId, { event: 'build_complete', state: 'audit' });
+      }
+
+      if (agentType === 'forcoding-auditor') {
+        await fsm.autoAdvance(STATE.AUDIT, STATE.RSI, sessionId);
+        await audit.record(sessionId, { event: 'audit_complete', state: 'rsi' });
       }
     },
   };

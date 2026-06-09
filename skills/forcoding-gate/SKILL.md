@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-gate
 description: ⛔ MANDATORY pre-code gate. Count subsystems → determine depth → select flow → commit to delegation. Auto-triggered on: build, create, implement, make, design, UI, page, 做, 实现, 构建, 创建, 界面, 页面, 计时器, 动画. NEVER bypass. If Builder count > 0 → edit/write tools BLOCKED. Two prior incidents (weather card 2026-06-06, focus forest 2026-06-08) caused by skipping this gate.

@@ -1,0 +1,40 @@
+flowchart TD
+    A[User Prompt] --> B{Existing classification?}
+
+    B -->|No| C[IntentClassifier.classify]
+    B -->|Yes, locked| Z[Skip: reuse locked classification]
+
+    C --> D[ProjectScanner.scan]
+    C --> E[TechDetector.detect]
+
+    D --> F[Multi-Axis Type Scoring]
+    E --> F
+
+    F --> G["Score: web-ui (0.85)"]
+    F --> H["Score: canvas-game (0.30)"]
+    F --> I["Score: backend-api (0.10)"]
+
+    G & H & I --> J[Sort by descending score]
+
+    J --> K{"Confidence check"}
+    K -->|"score > 0.8 AND no alternatives"| L["confidence: high<br/>no alternatives shown"]
+    K -->|"score > 0.5"| M["confidence: medium<br/>1-2 alternatives shown"]
+    K -->|"score < 0.5"| N["confidence: low<br/>interactive selection"]
+
+    L & M & N --> O[DensityAnalyzer.analyze]
+    O --> P[Subsystem estimate]
+
+    P --> Q[WorkflowRegistry.route]
+    Q --> R[Build classification object]
+
+    R --> S[HITL Renderer]
+    S --> T{"User response"}
+
+    T -->|"confirm: ok/yes/确认"| U["Lock classification<br/>fsm → discovery"]
+    T -->|"adjust: type:game"| V["Re-classify with adjustments<br/>fsm: back to classifying"]
+    T -->|"select: A/B/C"| W["Apply selection<br/>fsm → discovery"]
+    T -->|"reclassify: restart"| C
+    T -->|"unknown response"| S
+
+    U --> X[Task proceeds with locked classification]
+    X --> Y[Done]

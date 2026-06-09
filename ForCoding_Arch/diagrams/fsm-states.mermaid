@@ -1,0 +1,72 @@
+stateDiagram-v2
+    [*] --> idle
+    idle --> classifying : new task detected
+    classifying --> awaiting_hitl : classification complete
+    awaiting_hitl --> prototype : user confirms, exploring ideas
+    awaiting_hitl --> discovery : user confirms, clear intent
+    prototype --> prototype : iterate on visual mockups
+    prototype --> discovery : user signals readiness
+    discovery --> prototype : unresolved design questions
+    awaiting_hitl --> aborted : user cancels
+
+    state discovery {
+        [*] --> requirement_gathering
+        requirement_gathering --> gate_generated
+    }
+
+    discovery --> design : standard/heavy weight
+    discovery --> build : light weight (skip design)
+
+    state design {
+        [*] --> kata5_questions
+        kata5_questions --> given_when_then
+        given_when_then --> api_contract
+        api_contract --> gate_generated
+    }
+
+    design --> plan : heavy weight (need SPOQ DAG)
+    design --> build : standard weight
+
+    state plan {
+        [*] --> spoq_dag
+        spoq_dag --> verimap_vf
+        verimap_vf --> gate_generated
+    }
+
+    plan --> build
+
+    state build {
+        [*] --> code_generation
+        code_generation --> output_validation
+        output_validation --> gate_generated
+    }
+
+    build --> audit : complete
+    build --> build_recovery : output truncated
+
+    build_recovery --> build : retry (≤2 attempts)
+    build_recovery --> audit : retry exhausted / complete
+
+    state audit {
+        [*] --> pass0_syntax
+        pass0_syntax --> pass1_code_quality
+        pass1_code_quality --> pass2_performance
+        pass2_performance --> pass3_integration
+        pass3_integration --> verdict
+    }
+
+    audit --> rsi : VERDICT: VALIDATED
+    audit --> build : VERDICT: PARTIAL (≤3 cycles)
+
+    state rsi {
+        [*] --> screenshot_check
+        screenshot_check --> dispatch_verification
+        dispatch_verification --> gate_integrity
+        gate_integrity --> final_approval
+    }
+
+    rsi --> done : all checks pass
+    rsi --> build : verification failed
+
+    done --> idle : next task
+    aborted --> idle : next task

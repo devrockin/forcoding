@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-intent
 description: Use when receiving any user request — lightweight intent refinement that extracts goal, autonomy level, scope hint, and complexity from user's raw expression. Preserves original meaning without over-transforming.

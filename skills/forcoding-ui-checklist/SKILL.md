@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-ui-checklist
 description: Mobile UI best practices checklist for HTML/CSS/JS apps. Covers CSS architecture, platform adaptation (safe-area, 100dvh, iOS scroll), touch feedback, system fonts, micro-interactions, and code quality. Automatically injected via Auto-Inject Manifest when task_type=design or task includes UI.

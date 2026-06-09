@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-flash-engine
 description: Flash model optimization engine with Think Max as the only reasoning mode. Provides 10 optimization principles, autonomous mode rules, and cost-awareness. Loaded by all sub-agents before execution.

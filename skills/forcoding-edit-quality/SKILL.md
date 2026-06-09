@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-edit-quality
 description: Load before any file modification — enforces read-before-edit discipline, LSP-assisted navigation, and meaningful comment standards. Covers both edit reliability and comment quality.

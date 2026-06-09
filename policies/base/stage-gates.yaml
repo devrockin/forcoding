@@ -1,3 +1,8 @@
+# ⚠️ REFERENCE ONLY — ForCoding_Arch v4.0
+# These YAML policies are NO LONGER evaluated at runtime.
+# All policy logic has been migrated to deterministic Node.js modules in src/.
+# These files exist for human maintainers only.
+
 # ForCoding v3.0 — Stage Gate Policy
 # Enforces sequential stage progression: gate files must exist before next stage.
 # With hash-based content integrity verification (I13).

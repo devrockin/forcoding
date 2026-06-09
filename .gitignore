@@ -27,3 +27,7 @@ docs/forcoding/audit/
 
 # OpenCode session history (never push)
 .opencode/magic-context/
+
+docs/forcoding/state/
+
+docs/forcoding/gates/

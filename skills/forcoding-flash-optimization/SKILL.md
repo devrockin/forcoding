@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-flash-optimization
 description: Use when writing prompts for DeepSeek V4 Flash or any fast-tier model. Research-backed prompt engineering techniques to close the quality gap with Pro models. Based on empirical prompt optimization studies.

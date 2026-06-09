@@ -1,3 +1,8 @@
+> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+> This skill is NO LONGER loaded into LLM context. All governance logic
+> has been migrated to deterministic Node.js modules in `src/`.
+> This file exists for human maintainers only.
+
 ---
 name: forcoding-autopilot
 description: Use when autonomy level is set to 自主完成. Autonomous continuation with error retry, progress tracking, and graceful stop conditions. Does NOT hardcode any trigger words — follows the autonomy flag from intent refinement.

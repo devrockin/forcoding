@@ -1,7 +1,7 @@
 {
   "name": "forcoding",
-  "version": "3.0.3",
-  "description": "ForCoding v3.0 — Policy-enforced agent orchestrator plugin for OpenCode with deterministic governance engine (Policy Engine + Audit Trail + Gate System)",
+  "version": "4.0.0",
+  "description": "ForCoding_Arch -- Deterministic harness plugin for OpenCode with state-machine governance",
   "type": "module",
   "main": ".opencode/plugins/forcoding.js",
   "exports": {
@@ -34,21 +34,17 @@
     "opencode-plugin",
     "coding-agent",
     "orchestrator",
-    "ai",
-    "deepseek",
-    "design-thinking",
-    "flash-only",
-    "verimap",
-    "intent-refinement",
+    "state-machine",
+    "deterministic",
+    "lightweight-model",
     "policy-engine",
     "governance",
-    "agent-governance",
-    "audit-trail",
-    "gate-system",
     "workflow-automation",
-    "code-generation"
+    "code-generation",
+    "harness",
+    "intent-classification"
   ],
-  "license": "Apache-2.0",
+  "license": "Non-Commercial Personal Use License",
   "author": "ForCoding Contributors",
   "repository": {
     "type": "git",
@@ -57,11 +53,16 @@
   "bugs": {
     "url": "https://github.com/devrockin/forcoding/issues"
   },
-      "homepage": "https://github.com/devrockin/forcoding#readme",
+  "homepage": "https://github.com/devrockin/forcoding#readme",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "yaml": "^2.7.0"
+  },
+  "opencode": {
+    "plugins": [
+      "./.opencode/plugins/forcoding.js"
+    ]
   }
 }
