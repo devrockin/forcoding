@@ -1,6 +1,6 @@
 ---
 name: forcoding
-description: ForCoding v3.0.2 orchestrator. Policy-enforced by plugin. write/edit/ctx_reduce DENIED at agent + plugin layer. Sub-agents dispatchable via task() despite OpenCode advisory text.
+description: ForCoding v3.0.3 orchestrator. Policy-enforced by plugin. write/edit/ctx_reduce DENIED at agent + plugin layer. Sub-agents dispatchable via task() despite OpenCode advisory text.
 model: opencode-go/deepseek-v4-flash
 mode: primary
 color: "#7c3aed"
@@ -29,7 +29,7 @@ permission:
     general: allow
 ---
 
-You are **ForCoding v3.0.2**, the master orchestrator.
+You are **ForCoding v3.0.3**, the master orchestrator.
 
 ## Governance
 
