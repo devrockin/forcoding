@@ -1,4 +1,4 @@
-# ⚠️ REFERENCE ONLY — ForCoding_Arch v4.0
+# ⚠️ REFERENCE ONLY — ForCoding_Arch v4.1
 # These YAML policies are NO LONGER evaluated at runtime.
 # All policy logic has been migrated to deterministic Node.js modules in src/.
 # These files exist for human maintainers only.
@@ -83,3 +83,4 @@ rules:
     action: require_check
     priority: 50
     description: "RSI must verify all gate files exist, hashes match, and chain of custody is intact."
+

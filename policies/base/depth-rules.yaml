@@ -1,4 +1,4 @@
-# ⚠️ REFERENCE ONLY — ForCoding_Arch v4.0
+# ⚠️ REFERENCE ONLY — ForCoding_Arch v4.1
 # These YAML policies are NO LONGER evaluated at runtime.
 # All policy logic has been migrated to deterministic Node.js modules in src/.
 # These files exist for human maintainers only.
@@ -71,3 +71,4 @@ rules:
     action: require_check
     priority: 60
     description: "Auth/payments/PII → force deep with security review."
+

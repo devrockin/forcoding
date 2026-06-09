@@ -1,14 +1,14 @@
-> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.0
+﻿> ⚠️ **REFERENCE ONLY** — ForCoding_Arch v4.1
 > This skill is NO LONGER loaded into LLM context. All governance logic
 > has been migrated to deterministic Node.js modules in `src/`.
 > This file exists for human maintainers only.
 
 ---
 name: forcoding-core
-description: Master orchestrator skill (v3.0). Policy-enforced by plugin engine. Design thinking double-diamond workflow, Pre-Flight Gate, intent refinement, constraint-driven insight, VERIMAP VFs, Green/Red zone classification, gate metrics, RSI reality check, capability scan, delegation mandate. Rules enforced by policies/base/*.yaml — NOT by prompt compliance.
+description: Master orchestrator skill (v4.1). Policy-enforced by plugin engine. Design thinking double-diamond workflow, Pre-Flight Gate, intent refinement, constraint-driven insight, VERIMAP VFs, Green/Red zone classification, gate metrics, RSI reality check, capability scan, delegation mandate. Rules enforced by policies/base/*.yaml — NOT by prompt compliance.
 ---
 
-# ForCoding Core v3.0 — Design Thinking Workflow
+# ForCoding Core v4.1 — Design Thinking Workflow
 
 ## Design Thinking Phases
 
@@ -1239,3 +1239,5 @@ Weekly self-assessment of ForCoding's skill/agent inventory:
 3. **Gap analysis**: what's missing? (new design pattern, new tool support)
 4. **ROI ranking**: which improvements would give the highest quality/cost ratio?
 5. **⚠️ Registration integrity audit**: verify every `mode: subagent` agent file exists in BOTH `~/.config/opencode/forcoding/agents/` AND `~/.config/opencode/agents/`. File sizes must match. (v3.0 新增 — 2026-06-08 P0 事故后强制)
+
+

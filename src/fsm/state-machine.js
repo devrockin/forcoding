@@ -39,7 +39,7 @@ export class StateMachine {
     const upstream = requiredGates[to];
     if (!upstream) return;
     for (const stage of upstream) {
-      const gatePath = join(this.gates.dir, `${state.sessionId}.${stage}.approved`);
+      const gatePath = join(this.gates.gatesDir, `${state.sessionId}.${stage}.approved`);
       if (!existsSync(gatePath)) {
         throw new GateMissingError(stage);
       }

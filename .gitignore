@@ -31,3 +31,6 @@ docs/forcoding/audit/
 docs/forcoding/state/
 
 docs/forcoding/gates/
+
+coverage/
+# Vitest coverage

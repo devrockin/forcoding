@@ -13,9 +13,9 @@ export class HITLCheckpoint {
     return state.currentState === 'awaiting_hitl';
   }
 
-  injectConfirmation(classification, messages) {
+  injectConfirmation(classification) {
     const block = this.renderer.render(classification);
-    messages.push({ role: 'user', content: block });
+    return block;  // Return block — caller handles safe injection (no push into live array)
   }
 
   parseResponse(message) {

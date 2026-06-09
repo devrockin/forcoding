@@ -1,7 +1,7 @@
 // src/fsm/state-store.js
 // JSON file persistence with atomic writes for ForCoding_Arch state machine.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { StateStoreError } from './errors.js';
 
@@ -69,6 +69,8 @@ export class StateStore {
     try {
       writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf-8', flush: true });
       writeFileSync(path, JSON.stringify(data, null, 2), { encoding: 'utf-8', flush: true });
+      // Clean up .tmp file after successful write
+      try { unlinkSync(tmpPath); } catch (_) {}
     } catch (err) {
       throw new StateStoreError(`Atomic write failed: ${err.message}`, path);
     }

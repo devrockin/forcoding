@@ -20,6 +20,8 @@ import { GateSystem } from '../../src/gates/gate-system.mjs';
 import { AuditTrail } from '../../src/audit/audit-trail.mjs';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
+import { IntentGateway } from '../../src/classifier/intent-gateway.js';
+import { FSMRecoveryProtocol } from '../../src/fsm/recovery-protocol.js';
 
 const GATE_DIR = 'docs/forcoding/gates';
 const STATE_DIR = 'docs/forcoding/state';
@@ -33,7 +35,7 @@ export const ForCodingPlugin = async ({ client, directory }) => {
   ensureDirs(directory);
   const store = new StateStore(directory);
   const audit = new AuditTrail(join(directory, AUDIT_DIR));
-  const gates = new GateSystem(join(directory, GATE_DIR));
+  const gates = new GateSystem({ projectDir: directory });
   const fsm = new StateMachine(store, gates);
   const classifier = new IntentClassifier();
   const phaseLock = new PhaseLock(fsm);
@@ -44,53 +46,100 @@ export const ForCodingPlugin = async ({ client, directory }) => {
   const cycleDetector = new CycleDetector(store);
   const contextBudget = new ContextBudgetManager();
   const hitl = new HITLCheckpoint();
+  const intentGateway = new IntentGateway();
+  const recoveryProtocol = new FSMRecoveryProtocol(store);
 
   return {
     'chat.message': async (input, output) => {
-      const sessionId = input.sessionID || 'default';
-      const state = store.load(sessionId);
-      if (state.paused) return;
+      try {
+        // Guard 1: Only process user messages
+        const role = input.role || (input.info && input.info.role) || '';
+        if (role !== 'user') return;
 
-      // Supervisor override
-      const override = ResponseParser.detectSupervisor(output.message, state);
-      if (override) {
-        switch (override.command) {
-          case 'skip_audit': await fsm.forceTransition(state.currentState, STATE.RSI, sessionId); break;
-          case 'force_build': await fsm.forceTransition(state.currentState, STATE.BUILD, sessionId); break;
-          case 'back_to_design': await fsm.forceTransition(state.currentState, STATE.DESIGN, sessionId); break;
-          case 'pause': await store.save({ sessionId, paused: true, pausedAt: state.currentState }); break;
-          case 'resume': await store.save({ sessionId, paused: false }); break;
-          case 'shortcut': await store.save({ sessionId, workflowOverride: 'trivial' }); break;
-          case 'full': await store.save({ sessionId, workflowOverride: 'major' }); break;
-        }
-        await audit.record(sessionId, { event: 'supervisor_override', command: override.command, from: state.currentState });
-        return;
-      }
+        const sessionId = input.sessionID || 'default';
+        const state = store.load(sessionId);
+        if (!state || state.paused) return;
 
-      // Awaiting HITL response
-      if (state.currentState === STATE.AWAITING_HITL) {
-        const response = hitl.parseResponse(output.message);
-        if (response.action === 'confirm') {
-          const scope = ScopeScorer.score(state.originalPrompt, state.projectScan || {});
-          const next = ScopeScorer.shouldSkipHarness(scope) ? STATE.BUILD : STATE.DISCOVERY;
-          await fsm.transition(STATE.AWAITING_HITL, next, sessionId);
-          store.lock(sessionId);
-          await audit.record(sessionId, { event: 'classification_confirmed', classification: state.classification, scope });
+        // FSM Recovery: auto-recover from stuck states
+        try {
+          const health = recoveryProtocol.checkHealth(state);
+          if (health) {
+            await audit.record(sessionId, { event: 'fsm_recovery', action: health.action });
+            if (health.action === 'force_build') {
+              await fsm.forceTransition(state.currentState, STATE.BUILD, sessionId);
+              return;
+            }
+            if (health.action === 'auto_hitl') {
+              await fsm.forceTransition(state.currentState, STATE.AWAITING_HITL, sessionId);
+              return;
+            }
+            if (health.action === 'reset_idle') {
+              await store.save({ sessionId, currentState: STATE.IDLE, classificationLocked: false });
+            }
+          }
+        } catch (_) {}
+
+        // Supervisor override (runs regardless of coding query check)
+        const override = ResponseParser.detectSupervisor(output.message, state);
+        if (override) {
+          switch (override.command) {
+            case 'skip_audit': await fsm.forceTransition(state.currentState, STATE.RSI, sessionId); break;
+            case 'force_build': await fsm.forceTransition(state.currentState, STATE.BUILD, sessionId); break;
+            case 'back_to_design': await fsm.forceTransition(state.currentState, STATE.DESIGN, sessionId); break;
+            case 'pause': await store.save({ sessionId, paused: true, pausedAt: state.currentState }); break;
+            case 'resume': await store.save({ sessionId, paused: false }); break;
+            case 'shortcut': await store.save({ sessionId, workflowOverride: 'trivial' }); break;
+            case 'full': await store.save({ sessionId, workflowOverride: 'major' }); break;
+          }
+          await audit.record(sessionId, { event: 'supervisor_override', command: override.command, from: state.currentState });
           return;
         }
-      }
 
-      // New task → classify
-      if (!state.classificationLocked && state.currentState === STATE.IDLE) {
-        const msg = output.message;
-        if (!msg || msg.trim().length < 3) return;
-        const classification = await classifier.classify(msg, directory);
-        await store.save({ sessionId, classification, originalPrompt: msg, currentState: STATE.CLASSIFYING });
-        await fsm.transition(STATE.IDLE, STATE.CLASSIFYING, sessionId);
-        await fsm.transition(STATE.CLASSIFYING, STATE.AWAITING_HITL, sessionId);
-        hitl.injectConfirmation(classification, output.messages || []);
-        await audit.record(sessionId, { event: 'classification_proposed', classification });
-        return;
+        // L0-L3: Intent Gateway — classifies coding vs non-coding
+        if (output.message && output.message.trim().length >= 3) {
+          try {
+            const gatewayResult = await intentGateway.classify(output.message, directory);
+            if (gatewayResult.action === 'skip_fsm') return; // Non-coding, skip FSM
+          } catch (_) { /* Gateway failure — proceed with existing flow */ }
+        }
+
+        // Awaiting HITL response
+        if (state.currentState === STATE.AWAITING_HITL) {
+          const response = hitl.parseResponse(output.message);
+          if (response.action === 'confirm') {
+            const scope = ScopeScorer.score(state.originalPrompt, state.projectScan || {});
+            const next = ScopeScorer.shouldSkipHarness(scope) ? STATE.BUILD : STATE.DISCOVERY;
+            await fsm.transition(STATE.AWAITING_HITL, next, sessionId);
+            store.lock(sessionId);
+            await audit.record(sessionId, { event: 'classification_confirmed', classification: state.classification, scope });
+            return;
+          }
+        }
+
+        // New task → classify
+        if (!state.classificationLocked && state.currentState === STATE.IDLE) {
+          const msg = output.message;
+          if (!msg || msg.trim().length < 3) return;
+          const classification = await classifier.classify(msg, directory);
+          await store.save({ sessionId, classification, originalPrompt: msg, currentState: STATE.CLASSIFYING });
+          await fsm.transition(STATE.IDLE, STATE.CLASSIFYING, sessionId);
+          await fsm.transition(STATE.CLASSIFYING, STATE.AWAITING_HITL, sessionId);
+
+          // Safe HITL injection: new array reference → clean SolidJS batch update
+          const hitlBlock = hitl.injectConfirmation(classification);
+          if (hitlBlock) {
+            output.messages = [...(output.messages || []), { role: 'user', content: hitlBlock }];
+          }
+
+          await audit.record(sessionId, { event: 'classification_proposed', classification });
+          return;
+        }
+      } catch (err) {
+        // Catch all errors — prevents sidecar crash from unhandled exceptions
+        // Failure in any hook should never crash the sidecar
+        const sid = (input && input.sessionID) || 'default';
+        console.error(`[ForCoding] chat.message error:`, err.message, err.stack ? err.stack.slice(0, 200) : '');
+        try { await audit.record(sid, { event: 'hook_error', error: err.message }); } catch (_) {}
       }
     },
 
