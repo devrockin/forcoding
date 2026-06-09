@@ -3,6 +3,8 @@
 export class TruncationRecovery {
   static MAX_RETRIES = 2;
 
+  constructor(store) { this.store = store; }
+
   async detect(output, classification = {}) {
     const signals = [];
     const tags = classification.tags || {};

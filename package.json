@@ -1,6 +1,6 @@
 {
   "name": "forcoding",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "ForCoding_Arch -- Deterministic harness plugin for OpenCode with state-machine governance",
   "type": "module",
   "main": ".opencode/plugins/forcoding.js",

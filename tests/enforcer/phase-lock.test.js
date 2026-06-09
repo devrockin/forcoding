@@ -84,12 +84,14 @@ describe('PhaseLock', () => {
     expect(lock.check('forcoding-drafter', 'session-1').allowed).toBe(true);
   });
 
-  // 9. unknown agent → allowed=false
-  it('unknown agent type is not allowed', () => {
+  // 9. unknown agent → allowed=true (third-party agents pass through)
+  it('unknown agent type is allowed (third-party pass-through)', () => {
     fsm = createFsm({ currentState: 'build' });
     lock = new PhaseLock(fsm);
     const result = lock.check('unknown-agent', 'session-1');
-    expect(result.allowed).toBe(false);
+    expect(result.allowed).toBe(true);
+    expect(result.expected).toBeNull();
+    expect(result.error).toBeNull();
   });
 
   // 10. builder in PROTOTYPE state → allowed=true

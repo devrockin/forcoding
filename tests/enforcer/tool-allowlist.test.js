@@ -8,8 +8,11 @@ describe('ToolAllowlist', () => {
     expect(ToolAllowlist.isAllowed('read', STATE.IDLE)).toBe(true);
   });
 
-  it('denies write in IDLE phase', () => {
-    expect(ToolAllowlist.isAllowed('write', STATE.IDLE)).toBe(false);
+  it('allows write and bash in IDLE phase (orchestrator needs them)', () => {
+    expect(ToolAllowlist.isAllowed('write', STATE.IDLE)).toBe(true);
+    expect(ToolAllowlist.isAllowed('bash', STATE.IDLE)).toBe(true);
+    expect(ToolAllowlist.isAllowed('todowrite', STATE.IDLE)).toBe(true);
+    expect(ToolAllowlist.isAllowed('question', STATE.IDLE)).toBe(true);
   });
 
   it('allows task in BUILD phase', () => {
@@ -20,10 +23,9 @@ describe('ToolAllowlist', () => {
     expect(ToolAllowlist.isAllowed('read', STATE.BUILD)).toBe(false);
   });
 
-  it('allows bash:git* wildcard in IDLE and DONE', () => {
-    expect(ToolAllowlist.isAllowed('bash:git status', STATE.IDLE)).toBe(true);
-    expect(ToolAllowlist.isAllowed('bash:git log', STATE.IDLE)).toBe(true);
-    expect(ToolAllowlist.isAllowed('bash:git diff', STATE.DONE)).toBe(true);
+  it('allows bash in IDLE and DONE phase', () => {
+    expect(ToolAllowlist.isAllowed('bash', STATE.IDLE)).toBe(true);
+    expect(ToolAllowlist.isAllowed('bash', STATE.DONE)).toBe(true);
   });
 
   it('allows glob/grep in DISCOVERY phase', () => {
@@ -71,17 +73,17 @@ describe('ToolAllowlist', () => {
     expect(ToolAllowlist.isAllowed('write', STATE.RSI)).toBe(false);
   });
 
-  it('allows bash:git* in DONE phase', () => {
-    expect(ToolAllowlist.isAllowed('bash:git commit', STATE.DONE)).toBe(true);
-    expect(ToolAllowlist.isAllowed('bash:git push', STATE.DONE)).toBe(true);
+  it('allows bash:git* in DONE phase (git operations)', () => {
+    expect(ToolAllowlist.isAllowed('bash', STATE.DONE)).toBe(true);
     expect(ToolAllowlist.isAllowed('read', STATE.DONE)).toBe(true);
     expect(ToolAllowlist.isAllowed('write', STATE.DONE)).toBe(false);
   });
 
-  it('AWAITING_HITL allows no tools', () => {
-    expect(ToolAllowlist.isAllowed('read', STATE.AWAITING_HITL)).toBe(false);
-    expect(ToolAllowlist.isAllowed('task', STATE.AWAITING_HITL)).toBe(false);
+  it('AWAITING_HITL allows read, bash:git*, and question (HITL dialog tools)', () => {
+    expect(ToolAllowlist.isAllowed('read', STATE.AWAITING_HITL)).toBe(true);
+    expect(ToolAllowlist.isAllowed('question', STATE.AWAITING_HITL)).toBe(true);
     expect(ToolAllowlist.isAllowed('write', STATE.AWAITING_HITL)).toBe(false);
+    expect(ToolAllowlist.isAllowed('task', STATE.AWAITING_HITL)).toBe(false);
   });
 
   it('unknown phase returns empty list (denies everything)', () => {

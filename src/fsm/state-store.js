@@ -50,10 +50,12 @@ export class StateStore {
   }
 
   async update(updates, sessionId) {
+    const sid = sessionId || updates.sessionId;
+    if (!sid) throw new StateStoreError('Cannot update state: sessionId is required');
     this.ensureDir();
-    const current = this.load(sessionId);
+    const current = this.load(sid);
     const merged = { ...current, ...updates, updatedAt: Date.now() };
-    await this.atomicWrite(this.getFilePath(sessionId), merged);
+    await this.atomicWrite(this.getFilePath(sid), merged);
   }
 
   lock(sessionId) {
@@ -88,10 +90,15 @@ export class StateStore {
       auditCycles: 0,
       buildRetries: 0,
       buildTruncated: false,
+      buildSessions: [],
+      dispatchCount: 0,
+      transitions: [],
       paused: false,
       pausedAt: null,
+      forcedTransition: false,
       estimatedTokens: 0,
       lastBlockedAction: null,
+      lastBlockedAt: null,
       scopeThreshold: 1,
       createdAt: Date.now(),
       updatedAt: Date.now(),

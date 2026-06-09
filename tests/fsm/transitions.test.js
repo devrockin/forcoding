@@ -156,9 +156,9 @@ describe('DISPATCH_RULES', () => {
 
 // ─── AUTO_ADVANCE ───────────────────────────────────────────────
 describe('AUTO_ADVANCE', () => {
-  it('has 4 auto transitions', () => {
+  it('has 3 auto transitions', () => {
     const keys = Object.keys(AUTO_ADVANCE);
-    expect(keys.length).toBe(4);
+    expect(keys.length).toBe(3);
   });
 
   it('BUILD auto-advances to AUDIT', () => {
@@ -171,10 +171,6 @@ describe('AUTO_ADVANCE', () => {
 
   it('AUDIT auto-advances to RSI', () => {
     expect(AUTO_ADVANCE[STATE.AUDIT]).toBe(STATE.RSI);
-  });
-
-  it('DESIGN auto-advances to BUILD', () => {
-    expect(AUTO_ADVANCE[STATE.DESIGN]).toBe(STATE.BUILD);
   });
 });
 

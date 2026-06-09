@@ -32,12 +32,23 @@ export class StateMachine {
     const requiredGates = {
       [STATE.DESIGN]:    [STATE.DISCOVERY],
       [STATE.PLAN]:      [STATE.DESIGN],
-      [STATE.BUILD]:     [STATE.DISCOVERY],
+      [STATE.BUILD]:     [STATE.PLAN, STATE.DISCOVERY],
       [STATE.AUDIT]:     [STATE.BUILD],
       [STATE.RSI]:       [STATE.AUDIT, STATE.BUILD],
     };
     const upstream = requiredGates[to];
     if (!upstream) return;
+
+    // BUILD: any one upstream gate is sufficient (PLAN from DESIGN path, DISCOVERY from direct path)
+    if (to === STATE.BUILD) {
+      const anyExists = upstream.some(stage => {
+        const gatePath = join(this.gates.gatesDir, `${state.sessionId}.${stage}.approved`);
+        return existsSync(gatePath);
+      });
+      if (!anyExists) throw new GateMissingError(upstream.join(' or '));
+      return;
+    }
+
     for (const stage of upstream) {
       const gatePath = join(this.gates.gatesDir, `${state.sessionId}.${stage}.approved`);
       if (!existsSync(gatePath)) {
@@ -59,12 +70,15 @@ export class StateMachine {
       currentState: to,
       previousState: from,
       transitionAt: Date.now(),
+      forcedTransition: false,
     });
+    this._recordTransition(state, from, to, sessionId);
     this.listeners.forEach(fn => fn({ from, to, sessionId }));
   }
 
   async forceTransition(from, to, sessionId) {
     await this.createGate(to, sessionId);
+    const state = this.store.load(sessionId);
     await this.store.update({
       sessionId,
       currentState: to,
@@ -72,7 +86,31 @@ export class StateMachine {
       transitionAt: Date.now(),
       forcedTransition: true,
     });
+    this._recordTransition(state, from, to, sessionId);
     this.listeners.forEach(fn => fn({ from, to, sessionId, forced: true }));
+  }
+
+  _recordTransition(state, from, to, sessionId) {
+    const transitions = (state.transitions || []).concat([{
+      from: from,
+      to: to,
+      at: Date.now(),
+      forced: state.forcedTransition || false,
+    }]);
+    this.store.update({ sessionId, transitions: transitions });
+  }
+
+  recordDispatch(sessionId, data) {
+    const state = this.store.load(sessionId);
+    const dispatchCount = (state.dispatchCount || 0) + 1;
+    const buildSessions = (state.buildSessions || []).concat([{
+      id: data.taskId || ('task_' + String(dispatchCount).padStart(3, '0')),
+      agentType: data.agentType || 'unknown',
+      status: data.status || 'dispatched',
+      at: Date.now(),
+    }]);
+    this.store.update({ sessionId, dispatchCount: dispatchCount, buildSessions: buildSessions });
+    return dispatchCount;
   }
 
   async createGate(stage, sessionId) {

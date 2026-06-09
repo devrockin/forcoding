@@ -46,7 +46,6 @@ export const AUTO_ADVANCE = {
   [STATE.BUILD]:          STATE.AUDIT,
   [STATE.BUILD_RECOVERY]: STATE.AUDIT,
   [STATE.AUDIT]:          STATE.RSI,
-  [STATE.DESIGN]:         STATE.BUILD,
 };
 
 export const PHASE_ORDER = [

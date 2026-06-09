@@ -288,11 +288,12 @@ describe('StateMachine', () => {
       expect(state.currentState).toBe(STATE.BUILD);
     });
 
-    it('validates gate when auto-advancing DESIGN to BUILD', async () => {
-      const sessionId = 'auto-invalid';
-      await store.save({ sessionId, currentState: STATE.DESIGN });
+    it('validates gate when auto-advancing BUILD to AUDIT', async () => {
+      const sessionId = 'auto-build-to-audit';
+      await store.save({ sessionId, currentState: STATE.BUILD });
       createGateFile(gatesDir, sessionId, STATE.DISCOVERY);
-      const result = await sm.autoAdvance(STATE.DESIGN, STATE.BUILD, sessionId);
+      createGateFile(gatesDir, sessionId, STATE.BUILD);
+      const result = await sm.autoAdvance(STATE.BUILD, STATE.AUDIT, sessionId);
       expect(result).toBe(true);
     });
   });
