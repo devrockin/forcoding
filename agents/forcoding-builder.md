@@ -148,6 +148,83 @@ function initTimer() { ... }
 // END-SECTION: timer-script
 ```
 
+### Pre-Task: Phase Gate Verification (S2)
+
+Before executing ANY task, verify upstream gate files exist. The orchestrator will include gate file paths in the `## UPSTREAM GATES` section of your dispatch prompt.
+
+```
+## UPSTREAM GATES (checklist)
+[ ] Discovery gate: docs/forcoding/gates/{date}-{topic}.discovery.approved
+[ ] Designer gate: docs/forcoding/gates/{date}-{topic}.designer.approved
+[ ] Planner gate: docs/forcoding/gates/{date}-{topic}.planner.approved (deep only)
+```
+
+Use `read` tool to check each gate file exists at the path specified in the prompt.
+
+If upstream gate files are MISSING:
+```
+[ForCoding Builder] PHASE GATE BLOCKED.
+Expected upstream gate files not found:
+- <missing gate path>
+- <missing gate path>
+
+The orchestrator must complete earlier stages before dispatching Builder.
+Please run the Designer/Planner stage and create the missing gate files first.
+```
+Do NOT proceed with code generation until gate files are verified.
+
+If `## UPSTREAM GATES` section is entirely missing from the dispatch prompt:
+```
+[ForCoding Builder] WARNING — No UPSTREAM GATES section in dispatch prompt.
+Cannot verify phase sequence. Proceeding with caution.
+```
+(Proceed but log the warning.)
+
+### Pre-Task: Visual Reference Check (S1)
+
+Before executing ANY UI task, verify the prompt contains:
+
+```
+[ ] ## VISUAL REFERENCES or ## VISUAL CONCEPT section present
+[ ] At least 1 source URL (https://...)
+[ ] Style/colors/typography specified
+```
+
+If ANY check fails → respond with:
+```
+[ForCoding Builder] UI task BLOCKED — Missing visual references.
+I need the following before executing:
+1. A ## VISUAL CONCEPT section with style/colors/typography/feeling
+2. At least 1 reference URL or screenshot evidence
+3. Specific color palette and font choices
+
+Please provide these in your dispatch prompt and re-dispatch.
+```
+Do NOT proceed with code generation until all checks pass.
+
+### Visual References Processing (S4)
+
+Your dispatch prompt should include a `## VISUAL REFERENCES` section with reference analysis. Extract these items before generating code:
+
+```
+READ FROM DISPATCH:
+  [ ] Typography scale from references
+  [ ] Spacing rhythm from references
+  [ ] Color palette from references (use exact hex values)
+  [ ] Shadow/elevation system from references
+  [ ] Interaction patterns observed from references
+```
+
+If `## VISUAL REFERENCES` is present:
+- Use the EXACT typography sizes specified (not similar ones)
+- Use the EXACT color hex values extracted (not approximations)
+- Match the spacing rhythm precisely
+
+If `## VISUAL REFERENCES` is NOT present:
+- Raise a WARNING in your output
+- Use design-taste-frontend defaults as fallback
+- Note that output quality may not match intended design
+
 ### Pre-Task: Auto-Inject Manifest
 
 Before starting, check if the orchestrator included an **Auto-Inject Manifest** in your prompt.
@@ -400,3 +477,31 @@ Builder 遇到以下想法 → STOP. 这些是合理化的借口，不是正当�
 - ❌ 提交时想 "一次提交所有比较方便"
 
 **以上任何一条 → 删除违规代码 → 按正确方式重做。**
+
+### Post-Task: Polish Round Marking (S5)
+
+After completing code generation for a UI task, check the `ROUND` declaration from the dispatch prompt:
+
+**If ROUND=1 (first round):**
+Your final output MUST include:
+```
+[ForCoding Builder] ROUND 1 COMPLETE.
+POLISH REQUIRED. The orchestrator must re-dispatch me with ROUND=2 for the Polish Round.
+I will then apply forcoding-visual-review 14-point checklist, micro-interactions, and edge case fixes.
+```
+
+**If ROUND=2 (polish round):**
+Your final output MUST include:
+```
+[ForCoding Builder] ROUND 2 (POLISH) COMPLETE.
+14-point visual review checklist executed. Results: <pass>/14 PASS.
+Polish changes: <summary of what was refined>.
+```
+
+**If no ROUND declaration in prompt:**
+Your final output MUST include:
+```
+[ForCoding Builder] WARNING — No ROUND declaration in dispatch prompt.
+Cannot determine if Polish Round is needed.
+Orchestrator: if this is a UI task, re-dispatch with ROUND=2 for polish.
+```

@@ -1,4 +1,40 @@
 
+## v3.0.3 (2026-06-09) — Mechanical Gates (S1-S6)
+
+### Added
+
+**S3: Auto-Inject Mechanical Enforcement**
+- Pre-Builder Gate now requires `forcoding-ui-checklist`, `forcoding-visual-review`, `design-taste-frontend` in UI task prompts
+- `experimental.chat.messages.transform` hook auto-detects design tasks and prepends skill loading instructions
+
+**S1: Visual Inspection Hard Gate**
+- Pre-Builder Gate upgraded: requires `## VISUAL REFERENCES` section, URL presence, screenshot evidence (not just text)
+- Builder self-check: rejects UI tasks lacking visual references in dispatch prompt
+
+**S2: Phase Sequence Mechanical Lock**
+- Orchestrator: Phase-Locked workflow table with gate file paths, UPSTREAM GATES template, ordering rules
+- Builder: Phase Gate Verification — checks gate files on disk before execution, rejects missing upstream gates
+- Auditor: Pass 0.5 Gate Chain Verification — MD5 hash chain validation, tamper detection, HITL escalation
+
+**S5: Polish Round Double-Round Enforcement**
+- Pre-Builder Gate: requires ROUND declaration in UI task prompts
+- Builder: auto-marks POLISH_REQUIRED after Round 1, enforces 14-point visual review in Round 2
+- Auditor: Pass 3.3 Polish Round Verification — checks Round 2 gate file, verifies 14/14 PASS
+
+**S4: Visual Reference Templates**
+- Orchestrator: Reference Collection Protocol (browser screenshots, structured analysis, 2-3 references)
+- Builder: Visual References Processing — exact typography, color hex values, spacing matching
+
+**S6: Acceptance Screenshot Gate**
+- Orchestrator RSI: Visual Acceptance Protocol — screenshots mandatory before task completion
+- 9-point ACCEPTANCE CHECKLIST (light/dark mode, typography, colors, spacing, interactions, mobile, visual-review)
+
+### Changed
+
+- Policy engine: Pre-Builder Gate expanded from 3 checks to 7 checks
+- Builder.md: 3 new Pre-Task sections (Phase Gate, Visual Check, Polish Marking)
+- Auditor.md: 2 new passes (Pass 0.5 Gate Chain, Pass 3.3 Polish Verification)
+
 ## v3.0.2 (2026-06-09) — Dispatch Priority + Context Integrity
 
 ### Added

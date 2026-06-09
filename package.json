@@ -1,6 +1,6 @@
 {
   "name": "forcoding",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "ForCoding v3.0 — Policy-enforced agent orchestrator plugin for OpenCode with deterministic governance engine (Policy Engine + Audit Trail + Gate System)",
   "type": "module",
   "main": ".opencode/plugins/forcoding.js",

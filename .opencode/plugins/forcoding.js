@@ -216,12 +216,40 @@ export const ForCodingPlugin = async ({ client, directory }) => {
         const isUI = /\b(ui|ux|page|component|button|card|modal|heading|hero|dashboard|landing|animation|icon|navigation|header|footer|dropdown|sidebar)\b/i.test(cleanPrompt);
         if (isUI) {
           const missing = [];
-          if (!prompt.includes('Visual Concept')) missing.push('Visual Concept (style/colors/feeling)');
+          // S1: Visual inspection evidence (not just text)
+          const hasVisualSection = /##\s*VISUAL\s+(REFERENCE|INSPECTION|CONCEPT|ANALYSIS)/i.test(prompt);
+          const hasUrl = /https?:\/\/[^\s)"]+/i.test(prompt);
+          const hasScreenshot = /screenshot|截[图屏]|browser.*inspect|visually.*(review|check|inspected)/i.test(prompt);
+          const hasAnalysis = prompt.includes('Visual Concept') && prompt.includes('##') && prompt.includes('style:') && prompt.includes('colors:');
+
+          if (!hasVisualSection && !hasAnalysis) {
+            missing.push('VISUAL REFERENCES section (## VISUAL CONCEPT with style/colors/typography/feeling)');
+          }
+          if (!hasUrl) {
+            missing.push('Source reference URL (https://...)');
+          }
+          if (!hasScreenshot) {
+            missing.push('Visual inspection evidence (screenshot or browser review performed)');
+          }
           if (!/Delight|delight element|shine|ripple|haptic|badge|ring|export|spring|staggered|conic-gradient|backdrop-filter|vibrate/i.test(prompt)) {
             missing.push('>= 2 Delight Elements');
           }
           if (!/interaction stat|loading.*empty.*error|empty.*error.*loading|all states|state:|loading state|empty state|error state/i.test(prompt)) {
             missing.push('Interaction states (loading/empty/error/active)');
+          }
+          // S3: Auto-Inject — require UI skills loaded in prompt
+          if (!/forcoding-ui-checklist/i.test(prompt)) {
+            missing.push('forcoding-ui-checklist skill (auto-inject)');
+          }
+          if (!/forcoding-visual-review/i.test(prompt)) {
+            missing.push('forcoding-visual-review skill (auto-inject)');
+          }
+          if (!/design-taste-frontend/i.test(prompt)) {
+            missing.push('design-taste-frontend skill (auto-inject)');
+          }
+          // S5: Polish Round — UI tasks must declare round number
+          if (!/ROUND\s*[:=]|round\s*[:=]\s*[12]|POLISH/i.test(prompt)) {
+            missing.push('ROUND declaration (e.g., ROUND=1, POLISH ROUND=2)');
           }
           if (missing.length > 0) {
             throw new Error(
@@ -264,11 +292,42 @@ export const ForCodingPlugin = async ({ client, directory }) => {
     'experimental.chat.messages.transform': async (_input, output) => {
       const bootstrap = getBootstrap();
       if (!bootstrap || !output.messages?.length) return;
+
+      // Find user messages and check if this is a design/UI task
+      const DESIGN_KEYWORDS = /\b(设计|界面|页面|UI|UX|design|component|page|button|card|modal|layout|landing|dashboard|hero|animation|icon|visual|style|color)\b/i;
+      let isDesignTask = false;
+      for (const msg of output.messages) {
+        if (msg.info?.role === 'user') {
+          for (const part of msg.parts) {
+            if (part.type === 'text' && DESIGN_KEYWORDS.test(part.text)) {
+              isDesignTask = true;
+              break;
+            }
+          }
+          if (isDesignTask) break;
+        }
+      }
+
       const firstUser = output.messages.find(m => m.info?.role === 'user');
       if (!firstUser?.parts?.length) return;
       if (firstUser.parts.some(p => p.type === 'text' && p.text?.includes?.('EXTREMELY_IMPORTANT'))) return;
-      const ref = firstUser.parts[0];
-      firstUser.parts.unshift({ ...ref, type: 'text', text: bootstrap });
+
+      // Prepend bootstrap
+      firstUser.parts.unshift({ type: 'text', text: bootstrap });
+
+      // If design task, also prepend forced skill loading instructions
+      if (isDesignTask) {
+        const autoInject = `<IMPORTANT>
+This is a design/UI task. The following skills MUST be loaded before any builder dispatch:
+- skill("forcoding-ui-checklist") — mobile UI best practices
+- skill("forcoding-visual-review") — measurable aesthetic audit (14 criteria)
+- skill("design-taste-frontend") — calibrated color, typography, motion rules
+
+The Pre-Builder Gate will BLOCK any builder dispatch that does not include these skills in the prompt.
+</IMPORTANT>`;
+        // Insert right after bootstrap (before the original user message)
+        firstUser.parts.unshift({ type: 'text', text: autoInject });
+      }
     },
   };
 };

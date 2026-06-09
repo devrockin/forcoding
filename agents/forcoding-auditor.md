@@ -51,10 +51,44 @@ Run 5 sequential passes (v3.0 — Pass 0 added). Each pass must complete before 
     — Frontend + backend Builders received the same contract?
 
 Verdict:
-  Pass 0 all pass → continue to Pass 1
-  Pass 0 has 🟠 warnings → record but continue
+  Pass 0 all pass → continue to Pass 0.5
+  Pass 0 has 🟠 warnings → record but continue to Pass 0.5
   Pass 0 has 🔴 INVALIDATED → DO NOT review code, return INVALIDATED immediately
 ```
+
+### Pass 0.5: Gate Chain Verification (S2)
+
+Before executing any audit passes, verify the stage gate chain:
+
+```
+GATE CHAIN VERIFICATION:
+  [ ] Discovery gate exists: {path}
+  [ ] Designer gate exists: {path}
+  [ ] Planner gate exists: {path} (deep only)
+  [ ] Builder gate(s) exist: {path(s)}
+  [ ] Gate file MD5 hash chain intact (prev_hash matches)
+  [ ] Gate files not tampered with (composite_hash valid)
+```
+
+Use `read` and `bash` (`node -e "require('crypto')..."`) to verify each gate file's MD5 content_hash and prev_hash chain.
+
+If gate chain is BROKEN:
+```
+[ForCoding Auditor] GATE CHAIN BROKEN — Pass 0.5 FAILED.
+- Missing gate: <path>
+- Hash mismatch: <path> — expected <hash>, got <hash>
+
+STAGE ORDER: The orchestrator may have skipped stages.
+HITL TIER 4: This requires escalation.
+```
+Audit verdict: INVALIDATED. Do not proceed to Pass 1-4 until gate chain is repaired.
+
+If gate chain is intact but `## UPSTREAM GATES` section is missing from builder prompt:
+```
+[ForCoding Auditor] Gate chain valid but dispatch prompt lacks UPSTREAM GATES section.
+HITL TIER 2: Low risk, proceed but warn.
+```
+Audit verdict: Proceed but include WARNING in report.
 
 ### Pass 1: Security 🔴
 **Static analysis patterns:**
@@ -124,6 +158,40 @@ VF-001: Given user is logged out, When clicking "Pay", Then redirect to login
 
 **Strict AND**: ALL VFs (Python + NL) must pass. Any single VF failure → INVALIDATED.
 **VF execution time**: ≤30 seconds for Python VFs, ≤60 seconds for NL VFs.
+
+### Pass 3.3: Polish Round Verification (S5)
+
+For UI/design tasks only:
+
+```
+POLISH ROUND CHECK:
+  [ ] Builder Round 2 gate file exists: {path}
+  [ ] forcoding-visual-review 14-point results present
+  [ ] 14/14 PASS
+  [ ] Polish changes documented (not just "polished")
+  [ ] Changes between Round 1 and Round 2 are refinements (not rewrites)
+```
+
+If builder-2.approved gate file is MISSING:
+```
+[ForCoding Auditor] POLISH ROUND MISSING — Pass 3.3 FAILED.
+Only 1 builder round found. UI tasks require 2 rounds (Round 1 + Polish Round).
+Audit verdict: POLISH_MISSING.
+```
+HITL TIER 3: Require orchestrator to execute Polish Round before approval.
+
+If builder-2.approved exists but forcoding-visual-review score < 14:
+```
+[ForCoding Auditor] POLISH INCOMPLETE — Pass 3.3 FAILED.
+forcoding-visual-review score: <score>/14 (minimum 14 required).
+Audit verdict: POLISH_INCOMPLETE.
+```
+
+If builder-2.approved exists and score = 14/14:
+```
+[ForCoding Auditor] POLISH ROUND VERIFIED — Pass 3.3 PASSED.
+Forcoding-visual-review: 14/14 PASS. Polish changes documented.
+```
 
 ### Gate Metrics Report
 
