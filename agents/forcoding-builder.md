@@ -3,7 +3,7 @@ name: forcoding-builder
 description: Executes approved plan with edit discipline, TDD cycle, Self-Refine (≤3 iterations), and Auditor review per task. v3.0: Tech stack adaptive skills (16 detection items). Think Max. All interaction states + design taste checklist enforced.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
-hidden: true
+hidden: false
 permission:
   read: allow
   glob: allow

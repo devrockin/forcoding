@@ -1,3 +1,21 @@
+
+## v3.0.2 (2026-06-09) — Dispatch Priority + Context Integrity
+
+### Added
+
+- Dispatch priority rules: Builder first, general last resort
+- `ctx_reduce` structurally denied in orchestrator (agent + policy layer)
+- `forbid-ctx-reduce` and `general-agent-last-resort` in never-rules.yaml (13 rules total)
+
+### Fixed
+
+- Sub-agent `hidden: false` — removes "manual only" advisory for builder/designer/planner/drafter
+- Orchestrator explicit guidance: sub-agents ARE dispatchable via task()
+- `general` agent correctly positioned as absolute last resort
+
+### Changed
+
+- License: MIT → Apache 2.0
 # Changelog
 
 ## v3.0.0 (2026-06-08) — Plugin Architecture: Deterministic Policy Engine

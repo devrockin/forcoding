@@ -3,7 +3,7 @@ name: forcoding-planner
 description: Transforms specs into bite-sized executable plans (2-5min/task). v3.0: Tech stack adaptive skills (12 detection items). Generates SPOQ DAG wave dispatch for parallel scheduling. Generates VERIMAP Python VFs per subtask. DRY/YAGNI/TDD.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
-hidden: true
+hidden: false
 permission:
   read: allow
   glob: allow

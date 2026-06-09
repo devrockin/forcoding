@@ -3,7 +3,7 @@ name: forcoding-drafter
 description: Writes detailed design spec from approved scout summary. v3.0: Gate-aware + Context Drop Protection. Auto-evaluates security impact, estimates performance budget, documents architecture decisions.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
-hidden: true
+hidden: false
 permission:
   read: allow
   glob: allow

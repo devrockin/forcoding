@@ -33,6 +33,26 @@ rules:
     priority: 1999
     description: "Maintenance mode bypasses all restrictions."
 
+  # ─── Forbid context compression ───
+  - name: forbid-ctx-reduce
+    condition:
+      field: action.type
+      operator: eq
+      value: ctx_reduce
+    action: deny
+    priority: 950
+    description: "Context compression forbidden in orchestrator. Sub-agents require full dispatch context."
+
+  # ─── General agent is last resort ───
+  - name: general-agent-last-resort
+    condition:
+      field: agent.id
+      operator: eq
+      value: forcoding
+    action: require_check
+    priority: 850
+    description: "Orchestrator must dispatch ForCoding sub-agents before falling back to general."
+
   # ─── I1: Orchestrator write/edit PHYSICALLY BLOCKED ───
   - name: never-write-code
     condition:

@@ -3,7 +3,7 @@ name: forcoding-designer
 description: Define scope, explore approaches, write design specs. v3.0: Discovery-aware (expects discovery.md input) + project_type detection + fullstack API contract. Applies Kata 5問 + Given/When/Then + confidence tiers + Green/Red zone classification. Think Max.
 model: opencode-go/deepseek-v4-flash
 mode: subagent
-hidden: true
+hidden: false
 permission:
   read: allow
   glob: allow
