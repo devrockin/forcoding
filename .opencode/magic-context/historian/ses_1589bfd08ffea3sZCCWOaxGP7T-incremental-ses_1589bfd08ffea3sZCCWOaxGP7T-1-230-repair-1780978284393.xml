@@ -1,0 +1,7 @@
+<output>
+<compartments>
+<compartment start="1" end="35" title="Initial audit request and 5 key decision points">
+User requested comprehensive ForCoding audit based on existing research structure (2026-06-08 analysis documents) with confirmation for unclear areas. Assistant read two major documents: comprehensive analysis (500 lines) improvement roadmap v2 (886 lines), identifying root causes including prompt unprotected violations, orchestrator write/edit tool security issue, no runtime scheduling verification, missing Discovery phase with human consultation. Presented five decision points requiring user confirmation before implementation begins.
+</compartment>
+
+<compartment start="4" end="35" title="Decision 1

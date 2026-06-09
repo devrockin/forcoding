@@ -1,0 +1,38 @@
+<output>
+<compartments>
+<compartment start="209" end="213" title="Version synchronization audit">
+Audit revealed version inconsistency across ForCoding components after v3.0 plugin deployment: orchestrator agent correctly updated to v3.0 with plugin-enforced architecture, but 6 sub-agents and 13 skills retained mixed v2.x/v2.7-v2.8 content without synchronized headers. Core issue is functional separation (v3.0 plugin enforces policies) vs version annotation inconsistency in agent/skill metadata files. Verbatim decision: all sub-agent and skill version stamps must be unified to v3.0 for consistency and future audit clarity.
+</compartment>
+
+<compartment start="214" end="230" title="Self-correction protocol restoration">
+Executing multi-phase remediation strategy (A+B+E minimization): Policy engine now exposes agent whitelist rules allowing forcoding-builder/designer/drafter write/edit/bash operations, Pre-Builder Gate regex refined to exclude file-path false positives by stripping forcoding- pattern matches and filtering common word overlaps, maintenance mode flag introduced for ForCoding config updates. Requires temporary plugin disable (opencode.json comment) followed by restart — orchestrator cannot edit itself and builder sub-agents marked manual-only prevent programmatic task dispatch without user intervention.
+</compartment>
+
+<compartments>
+<facts>
+<WORKFLOW_RULES>
+* When editing ForCoding config/agent files, activate maintenance mode (maintenance: true) to bypass write/edit blocking. If editor tools are permanently blocked, temporarily disable plugin in opencode.json and restore after completion.
+</WORKFLOW_RULES>
+
+<PRIORITY_PATTERNS>
+* Sub-agents forcoding-builder/designer/drafter must be programmatically dispatchable via orchestrator task() calls — manual-only designation blocks workflow execution for game/game-like complex projects needing deep subsystem generation.
+<PRIORITY_PATTERNS>
+<CONSTRAINTS>
+* Pre-Builder Gate regex must exclude common English words (design, list, form, section) that appear in file paths, not feature detection. File path cleaning pattern: /forcoding-\w+|D:\\coding\\forcoding\\[\w\\]+\\.md/g removes false positives.
+</CONSTRAINTS>
+
+<ARCHITECTURE_DECISIONS>
+* Plugin-architecture enforces policy at tool.execute.before hook execution — orchestrator agent reduced to 80 lines (3KB) with plugin handling all NEVER rules and stage gates deterministically; agents/skills remain v2.x metadata but receive v3.0 runtime capabilities via plugin layer enforcement.
+</ARCHITECTURE_DECISIONS>
+
+<KNOWN_ISSUES>
+* Self-corruption paradox: ForCoding's policy engine blocks its own configuration updates, requiring external intervention (plugin disable) or scripted bulk replacement for version upgrades and policy patches. This is structural limitation of write denial model when orchestrator must modify its rules.
+</KNOWN_ISSUES>
+</facts>
+
+<unprocessed_from>
+
+<user_observations>
+* User prefers comprehensive implementation over phased approaches — requests "all improvements together" rather than iterative v2.x releases.
+</user_observations>
+</output>
