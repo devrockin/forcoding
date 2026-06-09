@@ -24,3 +24,6 @@ weather-cards.html
 desktop.ini
 
 docs/forcoding/audit/
+
+# OpenCode session history (never push)
+.opencode/magic-context/
