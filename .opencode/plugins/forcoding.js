@@ -101,6 +101,15 @@ export const ForCodingPlugin = async ({ client, directory }) => {
           }
         } catch (_) {}
 
+        // ── Routing reminder: inject once per session ──
+        if (!state.routingReminded && state.currentState === STATE.IDLE) {
+          await store.update({ sessionId, routingReminded: true });
+          output.messages = [...(output.messages || []), {
+            role: 'user',
+            content: '[ForCoding_Arch] Route ALL tasks through FSM. NEVER load brainstorming/writing-plans/subagent-driven-development. Design→forcoding-designer, Plan→forcoding-planner, Write→forcoding-builder. Output to docs/forcoding/ only. NEVER docs/superpowers/.',
+          }];
+        }
+
         // Supervisor override (runs regardless of coding query check)
         const override = ResponseParser.detectSupervisor(output.message, state);
         if (override) {
@@ -225,8 +234,31 @@ export const ForCodingPlugin = async ({ client, directory }) => {
       const sessionId = input.sessionID || 'default';
       const state = store.load(sessionId);
 
-      // ── Maintenance mode: bypass all enforcement ──
+      // ── Maintenance mode / trivial: bypass all enforcement ──
       if (state.maintenanceMode || state.workflowOverride === 'trivial') return;
+
+      // ── UNIVERSAL: Block writes to non-ForCoding paths (docs/superpowers/) ──
+      const FORBIDDEN_PATHS = [/docs\/superpowers\//i, /superskills\//i];
+      const checkPath = (input.args?.filePath || input.args?.path || input.args?.command || '').toString();
+      if (FORBIDDEN_PATHS.some(p => p.test(checkPath))) {
+        throw new Error(
+          '[ForCoding] FORBIDDEN PATH: docs/superpowers/ is not for ForCoding output. ' +
+          'Use docs/forcoding/ instead. Dispatch forcoding-designer or forcoding-planner via task().'
+        );
+      }
+
+      // ── UNIVERSAL: Block Superpowers skill loading ──
+      const FORBIDDEN_SKILLS = ['brainstorming', 'writing-plans', 'writing-skills', 'frontend-design',
+        'subagent-driven-development', 'executing-plans', 'using-superpowers'];
+      if (tool === 'skill' && input.args?.name) {
+        const skillName = input.args.name.toLowerCase();
+        if (FORBIDDEN_SKILLS.some(s => skillName.includes(s))) {
+          throw new Error(
+            '[ForCoding] Superpowers skill "' + input.args.name + '" is FORBIDDEN in ForCoding sessions. ' +
+            'Use ForCoding sub-agents: forcoding-scout, forcoding-designer, forcoding-planner, forcoding-builder, forcoding-auditor.'
+          );
+        }
+      }
 
       // ── UNIVERSAL: All tools checked against ToolAllowlist per phase ──
       if (!ToolAllowlist.isAllowed(tool, state.currentState)) {

@@ -95,6 +95,8 @@ export class StateStore {
       transitions: [],
       paused: false,
       pausedAt: null,
+      maintenanceMode: false,
+      routingReminded: false,
       forcedTransition: false,
       estimatedTokens: 0,
       lastBlockedAction: null,
